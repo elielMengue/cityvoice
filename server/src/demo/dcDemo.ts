@@ -37,6 +37,13 @@ export const DC_PLACES: readonly GazetteerEntry[] = [
     { address: "6th Street and East Capitol Street", point: { lat: 38.8899, lng: -76.9987 } },
     { address: "4th Street and A Street Southeast", point: { lat: 38.8883, lng: -77.0003 } },
     { address: "7th Street and C Street Southeast", point: { lat: 38.886, lng: -76.9965 } },
+    // Street addresses used by the residents and the scripted reports
+    { address: "1421 Columbia Road Northwest", point: { lat: 38.9274, lng: -77.0327 } },
+    { address: "1425 Columbia Road Northwest", point: { lat: 38.92745, lng: -77.03295 } },
+    { address: "1520 T Street Northwest", point: { lat: 38.9156, lng: -77.0345 } },
+    { address: "900 U Street Northwest", point: { lat: 38.91698, lng: -77.02412 } },
+    { address: "1100 11th Street Northwest", point: { lat: 38.9045, lng: -77.0271 } },
+    { address: "612 A Street Southeast", point: { lat: 38.8883, lng: -76.9982 } },
 ];
 
 export const DEMO_RESIDENTS: readonly Resident[] = [

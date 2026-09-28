@@ -87,11 +87,18 @@ function jaccard(a: Set<string>, b: Set<string>): number {
     return shared / (a.size + b.size - shared);
 }
 
+/** House numbers ("1421"), as opposed to street names ("14th") or letters ("u"). */
+function houseNumbers(tokens: Set<string>): string[] {
+    return [...tokens].filter((token) => /^\d+$/.test(token));
+}
+
 /**
  * Matches spoken places against a fixed list of addresses and intersections.
  * Word order does not matter, so "U and 14th" finds "14th Street and U Street
- * Northwest". Good enough for a demo city; real traffic goes to Amazon
- * Location Service.
+ * Northwest". A house number, once said, must match exactly: "1421 Columbia
+ * Road" must never be offered as "16th and Columbia", which is a different
+ * place. Good enough for a demo city; real traffic goes to a geocoding
+ * service behind the same interface.
  */
 export class GazetteerGeocoder implements Geocoder {
     private readonly entries: readonly { readonly entry: GazetteerEntry; readonly tokens: Set<string> }[];
@@ -102,7 +109,9 @@ export class GazetteerGeocoder implements Geocoder {
 
     async geocode(text: string): Promise<readonly GeocodeCandidate[]> {
         const query = placeTokens(text);
+        const numbers = houseNumbers(query);
         return this.entries
+            .filter(({ tokens }) => numbers.every((number) => tokens.has(number)))
             .map(({ entry, tokens }) => ({
                 address: entry.address,
                 point: entry.point,

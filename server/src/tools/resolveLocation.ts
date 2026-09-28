@@ -90,7 +90,7 @@ export function registerResolveLocationTool(server: McpServer, deps: ToolDeps, c
             if (best === undefined) {
                 return toolFailure(
                     "I couldn't find that place in the area CityVoice covers. " +
-                        "Could you give me a street address or the nearest intersection?",
+                        "Could you tell me the nearest intersection, like 14th and U?",
                 );
             }
 

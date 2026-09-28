@@ -56,6 +56,12 @@ describe("GazetteerGeocoder", () => {
         expect(matches[0]?.relevance).toBeLessThan(0.7);
     });
 
+    test("a house number must match exactly, never a nearby intersection", async () => {
+        expect((await geocoder.geocode("1421 Columbia Road"))[0]?.address).toBe("1421 Columbia Road Northwest");
+        expect((await geocoder.geocode("900 U Street"))[0]?.address).toBe("900 U Street Northwest");
+        expect(await geocoder.geocode("1500 U Street")).toEqual([]);
+    });
+
     test("filler words carry no meaning", () => {
         expect([...placeTokens("at the corner of 14th St NW and U Street")]).toEqual(["14th", "u"]);
     });

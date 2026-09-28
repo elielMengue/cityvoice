@@ -1,0 +1,22 @@
+{
+    "name": "cityvoice",
+    "private": true,
+    "workspaces": [
+        "server"
+    ],
+    "scripts": {
+        "typecheck": "bun run --filter '*' typecheck",
+        "test": "bun run --filter '*' test",
+        "lint": "eslint .",
+        "format": "prettier --write .",
+        "format:check": "prettier --check ."
+    },
+    "devDependencies": {
+        "@eslint/js": "^10.0.1",
+        "eslint": "9",
+        "prettier": "^3.9.9",
+        "typescript": "^6",
+        "typescript-eslint": "^8.70.1"
+    },
+    "type": "module"
+}

@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { detectEmergency } from "../catalog/emergency";
 import type { ServiceType } from "../catalog/serviceCatalog";
-import { rankServiceTypes } from "../catalog/serviceCatalog";
+import { hasClearWinner, rankServiceTypes } from "../catalog/serviceCatalog";
 import { isInside } from "../geo/geo";
 import { decodeLocationId } from "../geo/locationId";
 import { joinWithAnd, withArticle } from "../speech/speech";
@@ -30,6 +30,7 @@ const outputSchema = z.object({
                 questions: z.array(questionSchema),
             }),
         ),
+        clear_match: z.boolean(),
     }),
 });
 
@@ -88,30 +89,30 @@ export function registerListServiceTypesTool(server: McpServer, deps: ToolDeps):
             }
 
             const ranked = rankServiceTypes(description);
-            const services = ranked.map((service) => ({
+            const services = ranked.map(({ service }) => ({
                 service_code: service.code,
                 name: service.name,
                 typical_business_days: service.typicalBusinessDays,
                 questions: describeQuestions(service),
             }));
 
-            const [first] = ranked;
+            const first = ranked[0]?.service;
             if (first === undefined) {
                 return toolSuccess({
                     speech:
                         "I couldn't match that to a city service. Could you describe what you see, " +
                         "like a pothole, a broken streetlight, or graffiti?",
-                    data: { services },
+                    data: { services, clear_match: false },
                 });
             }
-            const speech =
-                ranked.length === 1
-                    ? `That sounds like ${withArticle(first.name)} report.`
-                    : `That could be ${joinWithAnd(
-                          ranked.slice(0, 3).map((service) => `${withArticle(service.name)} report`),
-                          "or",
-                      )}. Which fits best?`;
-            return toolSuccess({ speech, data: { services } });
+            const clearMatch = hasClearWinner(ranked);
+            const speech = clearMatch
+                ? `That sounds like ${withArticle(first.name)} report.`
+                : `That could be ${joinWithAnd(
+                      ranked.slice(0, 3).map(({ service }) => `${withArticle(service.name)} report`),
+                      "or",
+                  )}. Which fits best?`;
+            return toolSuccess({ speech, data: { services, clear_match: clearMatch } });
         },
     );
 }

@@ -1,7 +1,10 @@
 /**
  * CityVoice files routine city requests. Anything that could put someone in
- * danger goes to 911 instead, and nothing is filed. We would rather send a
- * few non-emergencies to 911 than miss a real one, so the lists are broad.
+ * danger goes to 911 instead, and nothing is filed. When in doubt we still
+ * send people to 911, but a false alarm has a cost too: the resident cannot
+ * file their report at all. So we match phrases that describe danger, not
+ * single words that often mean something harmless ("the light is shot",
+ * "a gas can was dumped", "the lamp is burning all day").
  */
 
 interface EmergencyRule {
@@ -15,16 +18,24 @@ const LEAVE_AND_CALL =
 const RULES: readonly EmergencyRule[] = [
     {
         phrases: [
-            "gas",
             "gas leak",
+            "gas leaking",
+            "leaking gas",
             "gas smell",
+            "smell of gas",
             "smell gas",
             "smells like gas",
+            "gas odor",
+            "rotten egg",
+            "rotten eggs",
             "carbon monoxide",
             "fire",
             "on fire",
+            "flames",
             "smoke",
-            "burning",
+            "burning smell",
+            "smells like burning",
+            "something burning",
             "explosion",
         ],
         speech: LEAVE_AND_CALL,
@@ -43,7 +54,10 @@ const RULES: readonly EmergencyRule[] = [
     },
     {
         phrases: [
-            "hurt",
+            "is hurt",
+            "are hurt",
+            "someone hurt",
+            "badly hurt",
             "injured",
             "bleeding",
             "unconscious",
@@ -52,7 +66,10 @@ const RULES: readonly EmergencyRule[] = [
             "trapped",
             "gun",
             "shooting",
-            "shot",
+            "was shot",
+            "been shot",
+            "shots fired",
+            "gunshot",
             "stabbing",
             "stabbed",
             "assault",
@@ -60,8 +77,9 @@ const RULES: readonly EmergencyRule[] = [
             "break in",
             "breaking in",
             "robbery",
-            "crash",
+            "car crash",
             "car accident",
+            "hit by a car",
         ],
         speech: "That sounds like an emergency. Please call 911 now. I haven't filed anything.",
     },
@@ -69,7 +87,14 @@ const RULES: readonly EmergencyRule[] = [
 
 // Everyday phrases that contain an emergency word but are routine reports,
 // like a leaking fire hydrant.
-const HARMLESS_PHRASES: readonly string[] = ["fire hydrant", "fire lane", "gas station", "smoke shop"];
+const HARMLESS_PHRASES: readonly string[] = [
+    "fire hydrant",
+    "fire lane",
+    "fire escape",
+    "gas station",
+    "smoke shop",
+    "smoke detector",
+];
 
 function words(text: string): string {
     return ` ${text

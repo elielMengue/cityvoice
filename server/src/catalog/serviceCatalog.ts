@@ -199,11 +199,17 @@ function containsPhrase(normalizedText: string, phrase: string): boolean {
     return normalizedText.includes(normalize(phrase));
 }
 
+export interface RankedService {
+    readonly service: ServiceType;
+    /** Number of words from matching synonyms. Only meaningful compared with other scores. */
+    readonly score: number;
+}
+
 /**
  * Ranks service types by how well their synonyms match the description.
  * Longer matching phrases weigh more, so "abandoned car" beats a bare "car".
  */
-export function rankServiceTypes(description: string): readonly ServiceType[] {
+export function rankServiceTypes(description: string): readonly RankedService[] {
     const text = normalize(description);
     return SERVICE_TYPES.map((service) => ({
         service,
@@ -213,8 +219,18 @@ export function rankServiceTypes(description: string): readonly ServiceType[] {
     }))
         .filter(({ score }) => score > 0)
         .sort((a, b) => b.score - a.score)
-        .slice(0, MAX_RANKED_SERVICES)
-        .map(({ service }) => service);
+        .slice(0, MAX_RANKED_SERVICES);
+}
+
+/**
+ * True when the first service is so far ahead that asking the resident to
+ * choose would only waste a turn. "A tree branch is blocking the sidewalk"
+ * is a tree hazard, not sidewalk damage. A tie, like "graffiti on the trash
+ * can", is left to the resident.
+ */
+export function hasClearWinner(ranked: readonly RankedService[]): boolean {
+    const [first, second] = ranked;
+    return first !== undefined && (second === undefined || first.score >= 2 * second.score);
 }
 
 /**

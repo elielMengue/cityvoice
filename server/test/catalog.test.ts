@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 
 import { detectEmergency } from "../src/catalog/emergency";
-import { findServiceType, matchAttributeAnswer, rankServiceTypes } from "../src/catalog/serviceCatalog";
+import { findServiceType, hasClearWinner, matchAttributeAnswer, rankServiceTypes } from "../src/catalog/serviceCatalog";
 
 function topCode(description: string): string | undefined {
-    return rankServiceTypes(description)[0]?.code;
+    return rankServiceTypes(description)[0]?.service.code;
 }
 
 describe("rankServiceTypes", () => {
@@ -29,6 +29,20 @@ describe("rankServiceTypes", () => {
     test("never returns more than five services", () => {
         const everything = "pothole streetlight trash graffiti dumping sidewalk abandoned car tree";
         expect(rankServiceTypes(everything).length).toBe(5);
+    });
+});
+
+describe("hasClearWinner", () => {
+    test("names the service when one is far ahead", () => {
+        expect(hasClearWinner(rankServiceTypes("a tree branch is blocking the sidewalk"))).toBe(true);
+    });
+
+    test("leaves a tie to the resident", () => {
+        expect(hasClearWinner(rankServiceTypes("there's graffiti on the trash can"))).toBe(false);
+    });
+
+    test("is false when nothing matched", () => {
+        expect(hasClearWinner([])).toBe(false);
     });
 });
 
@@ -59,6 +73,7 @@ describe("matchAttributeAnswer", () => {
 describe("detectEmergency", () => {
     test.each([
         "I smell gas in the hallway",
+        "it smells like rotten eggs in the stairwell",
         "there's smoke coming out of the manhole",
         "the building is on fire",
         "a power line is down on my street",
@@ -73,6 +88,11 @@ describe("detectEmergency", () => {
         "the fire hydrant is leaking",
         "trash all over the gas station parking lot",
         "the streetlight is flickering",
+        "the streetlight is shot",
+        "the street lamp is burning all day long",
+        "someone left a gas can on the sidewalk",
+        "I got hurt tripping on the broken sidewalk last week",
+        "the smoke detector sign fell off the pole",
     ])("lets through: %s", (description) => {
         expect(detectEmergency(description)).toBeUndefined();
     });

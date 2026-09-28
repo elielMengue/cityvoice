@@ -25,6 +25,10 @@ describe("loadConfig", () => {
         expect(() => loadConfig({ PORT: "eighty" })).toThrow();
     });
 
+    test("refuses to run the demo authenticator in production", () => {
+        expect(() => loadConfig({ NODE_ENV: "production" })).toThrow(/must not run/);
+    });
+
     test("rejects an auth mode that does not exist", () => {
         expect(() => loadConfig({ AUTH_MODE: "none" })).toThrow();
     });

@@ -1,5 +1,9 @@
 # Build from the repository root so the workspace lockfile is in context:
 #   docker build -f server/Dockerfile -t cityvoice-server .
+#
+# Until account linking exists, the server only runs in demo mode, which
+# refuses NODE_ENV=production. To try the image locally:
+#   docker run -p 8080:8080 -e NODE_ENV=development cityvoice-server
 
 FROM oven/bun:1.3.9-slim AS deps
 WORKDIR /app

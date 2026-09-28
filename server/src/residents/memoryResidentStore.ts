@@ -1,4 +1,5 @@
 import type { Draft, MyReport, Resident, ResidentStore } from "./residentStore";
+import { SUBMISSION_CLAIM_TIMEOUT_MS } from "./residentStore";
 
 export class MemoryResidentStore implements ResidentStore {
     private readonly residents = new Map<string, Resident>();
@@ -25,6 +26,27 @@ export class MemoryResidentStore implements ResidentStore {
 
     async saveDraft(draft: Draft): Promise<void> {
         this.drafts.set(draft.id, draft);
+    }
+
+    async claimSubmission(residentId: string, draftId: string, now: Date): Promise<boolean> {
+        // No await between the check and the write, so on one thread this is atomic.
+        const draft = this.drafts.get(draftId);
+        if (draft?.residentId !== residentId || draft.submittedRequestId !== undefined) {
+            return false;
+        }
+        const claimedAt = draft.submissionClaimedAt === undefined ? undefined : new Date(draft.submissionClaimedAt);
+        if (claimedAt !== undefined && now.getTime() - claimedAt.getTime() < SUBMISSION_CLAIM_TIMEOUT_MS) {
+            return false;
+        }
+        this.drafts.set(draftId, { ...draft, submissionClaimedAt: now.toISOString() });
+        return true;
+    }
+
+    async releaseSubmission(residentId: string, draftId: string): Promise<void> {
+        const draft = this.drafts.get(draftId);
+        if (draft?.residentId === residentId) {
+            this.drafts.set(draftId, { ...draft, submissionClaimedAt: undefined });
+        }
     }
 
     async addReport(report: MyReport): Promise<boolean> {

@@ -80,14 +80,30 @@ export function registerSubmitReportTool(server: McpServer, deps: ToolDeps, call
                 return toolFailure(`I still need one thing before I can send it. ${missing.question}`);
             }
 
-            const created = await deps.open311.createRequest({
-                service_code: service.code,
-                lat: draft.location.point.lat,
-                long: draft.location.point.lng,
-                address_string: draft.location.address,
-                description: draft.description,
-                attributes: draft.answers,
-            });
+            // Alexa may retry while the first call is still running. Only the
+            // call that holds the claim files the report.
+            if (!(await deps.residents.claimSubmission(resident.id, draft.id, deps.now()))) {
+                const latest = await deps.residents.getDraft(resident.id, draft.id);
+                if (latest?.submittedRequestId !== undefined) {
+                    return done(latest.submittedRequestId);
+                }
+                return toolFailure("I'm sending that report right now. Ask me again in a moment for its number.");
+            }
+
+            let created: Awaited<ReturnType<typeof deps.open311.createRequest>>;
+            try {
+                created = await deps.open311.createRequest({
+                    service_code: service.code,
+                    lat: draft.location.point.lat,
+                    long: draft.location.point.lng,
+                    address_string: draft.location.address,
+                    description: draft.description,
+                    attributes: draft.answers,
+                });
+            } catch (error) {
+                await deps.residents.releaseSubmission(resident.id, draft.id);
+                throw error;
+            }
             await deps.residents.saveDraft({ ...draft, submittedRequestId: created.service_request_id });
             await deps.residents.addReport({
                 residentId: resident.id,

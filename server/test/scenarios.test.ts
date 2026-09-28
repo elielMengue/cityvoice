@@ -89,6 +89,43 @@ describe("Scenario A: Daniel reports a new pothole", () => {
         expect(potholes.filter((request) => request.description === "huge pothole")).toHaveLength(1);
     });
 
+    test("two submit calls at the same moment file one report", async () => {
+        const app = createTestApp();
+        const draftId = await readyPotholeDraft(app);
+
+        const outcomes = await Promise.all([
+            app.callTool("submit_report", { draft_id: draftId, user_confirmed: true }, "daniel"),
+            app.callTool("submit_report", { draft_id: draftId, user_confirmed: true }, "daniel"),
+        ]);
+
+        const filed = await app.deps.open311.findRequests({ service_code: "POTHOLE" });
+        expect(filed.filter((request) => request.description === "huge pothole")).toHaveLength(1);
+        expect(outcomes.filter((outcome) => !outcome.isError)).toHaveLength(1);
+        const retry = await app.callTool("submit_report", { draft_id: draftId, user_confirmed: true }, "daniel");
+        expect(retry.data["request_id"]).toBe("26-00484821");
+    });
+
+    test("a spoken street address resolves to that exact address", async () => {
+        const app = createTestApp();
+
+        const place = await app.callTool("resolve_location", { spoken_place: "1421 Columbia Road" }, "daniel");
+
+        expect(place.speech).toBe("I found 1421 Columbia Road Northwest.");
+    });
+
+    test("an obvious service is named, not offered as a choice", async () => {
+        const app = createTestApp();
+
+        const outcome = await app.callTool(
+            "list_service_types",
+            { problem_description: "a tree branch is blocking the sidewalk" },
+            "daniel",
+        );
+
+        expect(outcome.speech).toBe("That sounds like a tree hazard report.");
+        expect(outcome.data["clear_match"]).toBe(true);
+    });
+
     test("nothing is sent without an explicit yes", async () => {
         const app = createTestApp();
         const draftId = await readyPotholeDraft(app);
@@ -148,6 +185,33 @@ describe("Scenario A: Daniel reports a new pothole", () => {
 });
 
 describe("Scenario B: Maria supports her neighbors' streetlight report", () => {
+    test("after supporting, Maria is told she supports it, not that she filed it", async () => {
+        const app = createTestApp();
+        const place = await app.callTool("resolve_location", { spoken_place: "my house" }, "maria");
+        const args = { location_id: place.data["location_id"], service_code: "STREETLIGHT" };
+        const nearby = await app.callTool("find_nearby_reports", args, "maria");
+        const [report] = nearby.data["reports"] as { request_id: string }[];
+        await app.callTool("support_report", { request_id: report?.request_id }, "maria");
+
+        const again = await app.callTool("find_nearby_reports", args, "maria");
+
+        expect(again.speech).toBe(
+            "You already support a streetlight out report near your home. It has three neighbors behind it and it's still open.",
+        );
+    });
+
+    test("two support calls at the same moment count Maria once", async () => {
+        const app = createTestApp();
+
+        await Promise.all([
+            app.callTool("support_report", { request_id: "26-00481907" }, "maria"),
+            app.callTool("support_report", { request_id: "26-00481907" }, "maria"),
+        ]);
+
+        const [request] = await app.deps.open311.getRequests(["26-00481907"]);
+        expect(request?.supporters).toBe(3);
+    });
+
     test("the duplicate is found and Maria adds her support", async () => {
         const app = createTestApp();
         const maria = "maria";

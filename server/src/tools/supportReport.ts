@@ -50,24 +50,31 @@ export function registerSupportReportTool(server: McpServer, deps: ToolDeps, cal
             }
 
             const neighbors = (count: number) => countOf(count, "neighbor");
-            const existing = await deps.residents.getReport(resident.id, requestId);
-            if (existing !== undefined) {
-                const yours = existing.role === "author" ? "You filed that report" : "You already support that report";
+            const alreadyBehind = async () => {
+                const existing = await deps.residents.getReport(resident.id, requestId);
+                const [latest] = await deps.open311.getRequests([requestId]);
+                const supporters = latest?.supporters ?? request.supporters;
+                const yours = existing?.role === "author" ? "You filed that report" : "You already support that report";
                 return toolSuccess({
-                    speech: `${yours}. It has ${neighbors(request.supporters)} behind it.`,
-                    data: { request_id: requestId, supporters: request.supporters, already_supported: true },
+                    speech: `${yours}. It has ${neighbors(supporters)} behind it.`,
+                    data: { request_id: requestId, supporters, already_supported: true },
                 });
-            }
+            };
 
-            // Link the resident before counting. If the count then fails, a
-            // retry finds the link and the total stays one short. We prefer
-            // that to the other order, where a retry would count them twice.
-            await deps.residents.addReport({
+            // Link the resident before counting, and only count when the link
+            // is new. The store refuses a second link atomically, so two calls
+            // at the same moment count the resident once. If the count fails
+            // after the link, the total stays one short; we prefer that to
+            // counting anyone twice.
+            const linked = await deps.residents.addReport({
                 residentId: resident.id,
                 requestId,
                 role: "supporter",
                 createdAt: deps.now().toISOString(),
             });
+            if (!linked) {
+                return alreadyBehind();
+            }
             const supporters = await deps.open311.addSupporter(requestId);
             return toolSuccess({
                 speech: `Done. That's ${neighbors(supporters)} now. Ask me anytime for an update.`,

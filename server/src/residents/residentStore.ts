@@ -20,7 +20,12 @@ export interface Draft {
     readonly expiresAt: string;
     /** Set once the report is filed, so a retried submit returns the same request. */
     readonly submittedRequestId?: string;
+    /** Set while one call is filing the report, so a parallel call does not file it again. */
+    readonly submissionClaimedAt?: string;
 }
+
+/** A claim older than this belongs to a call that died; another call may take over. */
+export const SUBMISSION_CLAIM_TIMEOUT_MS = 30_000;
 
 export type ReportRole = "author" | "supporter";
 
@@ -40,6 +45,14 @@ export interface ResidentStore {
     getResident(residentId: string): Promise<Resident | undefined>;
     getDraft(residentId: string, draftId: string): Promise<Draft | undefined>;
     saveDraft(draft: Draft): Promise<void>;
+    /**
+     * Atomically marks the draft as being submitted. Returns false when it is
+     * already submitted, or when another call holds a claim younger than
+     * SUBMISSION_CLAIM_TIMEOUT_MS. Backed by a conditional write in a database.
+     */
+    claimSubmission(residentId: string, draftId: string, now: Date): Promise<boolean>;
+    /** Gives the claim back after a failed attempt, so the resident can retry right away. */
+    releaseSubmission(residentId: string, draftId: string): Promise<void>;
     /** Returns false, and changes nothing, when the resident is already linked to the request. */
     addReport(report: MyReport): Promise<boolean>;
     getReport(residentId: string, requestId: string): Promise<MyReport | undefined>;

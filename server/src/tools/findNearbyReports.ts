@@ -27,7 +27,7 @@ const outputSchema = z.object({
                 age: z.string(),
                 supporters: z.number(),
                 status_notes: z.string().optional(),
-                is_mine: z.boolean(),
+                my_role: z.enum(["author", "supporter", "none"]),
             }),
         ),
     }),
@@ -81,9 +81,10 @@ export function registerFindNearbyReportsTool(server: McpServer, deps: ToolDeps,
 
             const reports = await Promise.all(
                 nearby.map(async ({ request, distance }) => {
-                    const mine =
-                        caller.residentId !== undefined &&
-                        (await deps.residents.getReport(caller.residentId, request.service_request_id)) !== undefined;
+                    const link =
+                        caller.residentId === undefined
+                            ? undefined
+                            : await deps.residents.getReport(caller.residentId, request.service_request_id);
                     return {
                         request_id: request.service_request_id,
                         service_name: request.service_name,
@@ -93,7 +94,7 @@ export function registerFindNearbyReportsTool(server: McpServer, deps: ToolDeps,
                         age: ageInWords(new Date(request.requested_datetime), now),
                         supporters: request.supporters,
                         ...(request.status_notes === undefined ? {} : { status_notes: request.status_notes }),
-                        is_mine: mine,
+                        my_role: link?.role ?? ("none" as const),
                     };
                 }),
             );
@@ -106,9 +107,17 @@ export function registerFindNearbyReportsTool(server: McpServer, deps: ToolDeps,
                     data: { reports },
                 });
             }
-            if (closest.is_mine) {
+            if (closest.my_role === "author") {
                 return toolSuccess({
                     speech: `You already reported ${withArticle(service.name)} ${place}, ${closest.age}. It's still open.`,
+                    data: { reports },
+                });
+            }
+            if (closest.my_role === "supporter") {
+                return toolSuccess({
+                    speech:
+                        `You already support ${withArticle(service.name)} report ${place}. ` +
+                        `It has ${countOf(closest.supporters, "neighbor")} behind it and it's still open.`,
                     data: { reports },
                 });
             }

@@ -1,11 +1,15 @@
+import type { Authenticator } from "./auth/authenticator";
 import type { Logger } from "./logger";
 import { createMcpFetch } from "./mcpServer";
+import type { ToolDeps } from "./tools/toolContext";
 
 export const MCP_PATH = "/mcp";
 export const HEALTH_PATH = "/health";
 
 export interface HttpServerDeps {
     readonly logger: Logger;
+    readonly tools: ToolDeps;
+    readonly authenticate: Authenticator;
 }
 
 /**
@@ -13,8 +17,12 @@ export interface HttpServerDeps {
  * one log line per request with the status and the latency, which is the
  * number Alexa+ holds us to.
  */
-export function createFetchHandler({ logger }: HttpServerDeps): (request: Request) => Promise<Response> {
-    const mcpFetch = createMcpFetch(logger);
+export function createFetchHandler({
+    logger,
+    tools,
+    authenticate,
+}: HttpServerDeps): (request: Request) => Promise<Response> {
+    const mcpFetch = createMcpFetch(logger, tools);
 
     return async (request) => {
         const startedAt = performance.now();
@@ -25,7 +33,7 @@ export function createFetchHandler({ logger }: HttpServerDeps): (request: Reques
             if (pathname === HEALTH_PATH && request.method === "GET") {
                 response = Response.json({ status: "ok" });
             } else if (pathname === MCP_PATH) {
-                response = await mcpFetch(request);
+                response = await mcpFetch(request, await authenticate(request));
             } else {
                 response = new Response("Not found", { status: 404 });
             }

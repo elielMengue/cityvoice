@@ -1,20 +1,47 @@
+import type { AuthInfo } from "@modelcontextprotocol/server";
 import { createMcpHandler, McpServer } from "@modelcontextprotocol/server";
 
 import type { Logger } from "./logger";
+import { registerDraftReportTool } from "./tools/draftReport";
+import { registerFindNearbyReportsTool } from "./tools/findNearbyReports";
+import { registerListServiceTypesTool } from "./tools/listServiceTypes";
 import { registerPingTool } from "./tools/ping";
+import { registerResolveLocationTool } from "./tools/resolveLocation";
+import { registerSubmitReportTool } from "./tools/submitReport";
+import { registerSupportReportTool } from "./tools/supportReport";
+import type { Caller, ToolDeps } from "./tools/toolContext";
 
 export const SERVER_NAME = "cityvoice";
-export const SERVER_VERSION = "0.1.0";
+export const SERVER_VERSION = "0.2.0";
 
 /** Anything bigger than this is not a voice request. */
 const MAX_REQUEST_BODY_BYTES = 256 * 1024;
 
-export type McpFetch = (request: Request) => Promise<Response>;
+const INSTRUCTIONS =
+    "CityVoice lets residents report non-emergency city problems (potholes, broken streetlights, missed trash, " +
+    "graffiti and similar) and follow them up. To report: resolve_location, then list_service_types, then " +
+    "find_nearby_reports. If a neighbor already reported it, offer support_report. Otherwise draft_report, ask any " +
+    "missing questions, read the readback, and call submit_report only after the user says yes. " +
+    "Each tool returns a speech field: say it as it is.";
 
-/** Builds a fresh MCP server with every tool registered. */
-export function createMcpServer(): McpServer {
-    const server = new McpServer({ name: SERVER_NAME, version: SERVER_VERSION });
+export type McpFetch = (request: Request, authInfo: AuthInfo | undefined) => Promise<Response>;
+
+/** The resident id rides in the verified token's extra claims. */
+export function callerFrom(authInfo: AuthInfo | undefined): Caller {
+    const residentId = authInfo?.extra?.["residentId"];
+    return { residentId: typeof residentId === "string" ? residentId : undefined };
+}
+
+/** Builds a fresh MCP server, with every tool, for one caller. */
+export function createMcpServer(deps: ToolDeps, caller: Caller): McpServer {
+    const server = new McpServer({ name: SERVER_NAME, version: SERVER_VERSION }, { instructions: INSTRUCTIONS });
     registerPingTool(server);
+    registerResolveLocationTool(server, deps, caller);
+    registerListServiceTypesTool(server, deps);
+    registerFindNearbyReportsTool(server, deps, caller);
+    registerDraftReportTool(server, deps, caller);
+    registerSubmitReportTool(server, deps, caller);
+    registerSupportReportTool(server, deps, caller);
     return server;
 }
 
@@ -25,11 +52,11 @@ export function createMcpServer(): McpServer {
  * serves through its stateless legacy path, answering each call as a short
  * SSE stream that carries the single result.
  */
-export function createMcpFetch(logger: Logger): McpFetch {
-    const handler = createMcpHandler(createMcpServer, {
+export function createMcpFetch(logger: Logger, deps: ToolDeps): McpFetch {
+    const handler = createMcpHandler(({ authInfo }) => createMcpServer(deps, callerFrom(authInfo)), {
         legacy: "stateless",
         maxRequestBodySize: MAX_REQUEST_BODY_BYTES,
         onerror: (error) => logger.warn("mcp request rejected", { error: error.message }),
     });
-    return (request) => handler.fetch(request);
+    return (request, authInfo) => handler.fetch(request, authInfo === undefined ? {} : { authInfo });
 }

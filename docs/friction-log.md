@@ -71,6 +71,19 @@ Time lost is our own rough estimate.
 - **Workaround:** set `PYTHONUTF8=1`, or narrow the output with `--query`.
 - **Time lost:** 10 minutes.
 
+### GeoReport v2 cannot search by distance
+
+- **Product:** Open311 GeoReport v2 standard
+- **Tried:** to find open reports within 75 meters of a place, to catch
+  duplicates before they are filed.
+- **Expected:** a `lat`, `long` and `radius` filter on `GET requests`.
+- **Happened:** the standard filters by service, status and date only. Some
+  cities add their own geographic filters, but each one differently.
+- **Workaround:** ask for open requests of one service type, then filter by
+  distance on our side. This is fine for a demo city, but on a large city it
+  would pull thousands of rows; a cache per service type will be needed.
+- **Time lost:** 10 minutes.
+
 ### Agent Toolkit setup ends with a Windows error
 
 - **Product:** `aws configure agent-toolkit` on Windows 11

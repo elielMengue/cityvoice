@@ -1,0 +1,22 @@
+{
+    "name": "@cityvoice/server",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "dependencies": {
+        "@modelcontextprotocol/server": "2.1.0",
+        "zod": "4"
+    },
+    "devDependencies": {
+        "@modelcontextprotocol/client": "2.1.0",
+        "@types/bun": "^1.4.2",
+        "@types/node": "^26.6.3",
+        "typescript": "^6"
+    },
+    "scripts": {
+        "dev": "bun --watch src/index.ts",
+        "start": "bun src/index.ts",
+        "test": "bun test",
+        "typecheck": "tsc --noEmit"
+    }
+}

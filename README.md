@@ -3,11 +3,12 @@
 Report a problem in your street to your city just by talking to Alexa.
 
 CityVoice is an MCP server for Alexa+. A resident says "there's a huge pothole
-at 14th and U", and CityVoice finds the place, checks whether neighbours have
+at 14th and U", and CityVoice finds the place, checks whether neighbors have
 already reported it, files the request, and later tells the resident how it is
-going. It speaks [Open311 GeoReport v2](https://wiki.open311.org/GeoReport_v2/),
-the open standard many US cities already use for their 311 services, so one
-integration can serve any city that supports it.
+going. It is built on the data model of
+[Open311 GeoReport v2](https://wiki.open311.org/GeoReport_v2/), the open
+standard many US cities already use for their 311 services, so that one
+connector can serve any city that supports it.
 
 Built for the Alexa+ track of
 [Build, Ship, Shape: Amazon Developer Hackathon 2026](https://amazonappdev2026.devpost.com/).
@@ -17,7 +18,8 @@ Built for the Alexa+ track of
 A resident can report a problem from start to finish, and support a report a
 neighbor already filed. Reports go to a sandbox that behaves like a city's
 Open311 server, never to a real city. Following up on reports, the map for
-screens and account linking come next.
+screens, account linking, shared storage and the HTTP connector for real
+Open311 cities come next.
 
 ## Tools
 
@@ -84,9 +86,11 @@ bun run test
 
 ## Design choices
 
-- **Stateless.** Every MCP request is served by a fresh server instance, so
-  any container can answer any call and scaling out needs no shared session
-  store.
+- **Stateless MCP layer.** Every MCP request is served by a fresh server
+  instance and there are no MCP sessions. What must be remembered (drafts,
+  who supports what) lives in the resident store. The demo keeps that store in
+  memory, so it runs as a single instance; with a shared database behind the
+  same interface, any instance can answer any call.
 - **No LLM in the server.** The tools are plain, fast code. Language
   understanding belongs to Alexa+, which keeps each call well under the
   500 ms budget.
@@ -97,8 +101,11 @@ bun run test
   coordinates, so the next tool needs no lookup and no shared cache.
 - **Ports and adapters.** Geocoding, the city's 311 system and resident
   storage sit behind interfaces. The demo plugs in a gazetteer, a sandbox and
-  memory; production plugs in Amazon Location Service, a city's Open311 API
-  and DynamoDB without touching the tools.
+  memory; a geocoding service, a city's Open311 API and a database plug in
+  the same way, without touching the tools.
+- **Safe to retry.** Alexa may repeat a call when a response is slow. Filing
+  a report and supporting one are both protected, so a repeated or parallel
+  call never files twice or counts anyone twice.
 
 More in [docs/engineering-practices.md](docs/engineering-practices.md).
 

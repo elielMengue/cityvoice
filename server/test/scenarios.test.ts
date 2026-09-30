@@ -475,6 +475,33 @@ describe.each([...TEST_BACKENDS])("with the %s store", (backend: TestBackend) =>
     });
 
     describe("Edges every scenario relies on", () => {
+        test("null for an optional argument, and an unknown status, are read as left out", async () => {
+            const app = createTestApp();
+
+            const reports = await app.callTool("get_my_reports", { status: "pending", cursor: null }, "aisha");
+            const started = await app.callTool(
+                "start_report",
+                { problem_description: "big pothole", spoken_place: null },
+                "daniel",
+            );
+            const place = await app.callTool("resolve_location", { spoken_place: "14th and U" }, "daniel");
+            const draft = await app.callTool(
+                "draft_report",
+                {
+                    draft_id: null,
+                    location_id: place.data["location_id"],
+                    service_code: "POTHOLE",
+                    description: null,
+                    answers: null,
+                },
+                "daniel",
+            );
+
+            expect(reports.speech).toStartWith("You have three reports.");
+            expect(started.data["next_step"]).toBe("say_place");
+            expect(draft.speech).toBe("Is it in the road or in a crosswalk?");
+        });
+
         test("an ambiguous place gets up to three candidates to choose from", async () => {
             const app = createTestApp();
 

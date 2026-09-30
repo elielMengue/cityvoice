@@ -38,7 +38,7 @@ export function registerListServiceTypesTool(server: McpServer, deps: ToolDeps):
                         "The problem in the user's words, for example \"there's a huge pothole\", " +
                             '"the street lamp is out", "they didn\'t pick up the garbage".',
                     ),
-                location_id: z.string().optional().describe("The location_id, if the place is already known."),
+                location_id: z.string().nullish().describe("The location_id, if the place is already known."),
             }),
             outputSchema,
             annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
@@ -48,7 +48,7 @@ export function registerListServiceTypesTool(server: McpServer, deps: ToolDeps):
             if (emergency !== undefined) {
                 return toolFailure(emergency);
             }
-            if (locationId !== undefined) {
+            if (locationId !== undefined && locationId !== null) {
                 const location = decodeLocationId(locationId);
                 if (location === undefined) {
                     return toolFailure("I lost track of the place. Could you tell me where the problem is again?");

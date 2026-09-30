@@ -89,19 +89,21 @@ export function registerGetMyReportsTool(server: McpServer, deps: ToolDeps, call
                 "and call again with that cursor.",
             inputSchema: z.object({
                 status: statusFilterSchema
-                    .optional()
+                    .nullish()
+                    // An unknown value reads as "all" rather than failing the call.
+                    .catch(undefined)
                     .describe(
                         'Which reports: "open" (still being handled, pending, in progress), ' +
                             '"closed" (fixed, done, resolved) or "all". Defaults to all.',
                     ),
-                cursor: z.string().optional().describe("The next_cursor from the previous answer, to hear more."),
+                cursor: z.string().nullish().describe("The next_cursor from the previous answer, to hear more."),
             }),
             outputSchema,
             annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
         },
         async (args) => {
             const status = args.status ?? "all";
-            const cursor = args.cursor;
+            const cursor = args.cursor ?? undefined;
             const found = await resolveResident(deps, caller);
             if ("failure" in found) {
                 return found.failure;

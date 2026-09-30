@@ -36,7 +36,7 @@ export function registerFindNearbyReportsTool(server: McpServer, deps: ToolDeps,
                     .int()
                     .min(10)
                     .max(MAX_RADIUS_METERS)
-                    .optional()
+                    .nullish()
                     .describe(`Search radius in meters. Defaults to ${DEFAULT_RADIUS_METERS}, about half a block.`),
             }),
             outputSchema,
@@ -51,7 +51,7 @@ export function registerFindNearbyReportsTool(server: McpServer, deps: ToolDeps,
             if (service === undefined) {
                 return toolFailure("I'm not sure which kind of problem this is. Could you describe it again?");
             }
-            const reports = await findNearbyReports(deps, caller, location, service, radius);
+            const reports = await findNearbyReports(deps, caller, location, service, radius ?? undefined);
             return toolSuccess({ speech: nearbySpeech(reports, service, location), data: { reports } });
         },
     );

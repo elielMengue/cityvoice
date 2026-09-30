@@ -67,7 +67,7 @@ export function registerStartReportTool(server: McpServer, deps: ToolDeps, calle
                     .string()
                     .min(1)
                     .max(200)
-                    .optional()
+                    .nullish()
                     .describe(
                         'The place exactly as the user said it: "14th and U", "1421 Columbia Road", ' +
                             '"in front of my house". Leave out if the user did not say where.',
@@ -102,7 +102,7 @@ export function registerStartReportTool(server: McpServer, deps: ToolDeps, calle
             if (ranked.length === 0) {
                 return answer(serviceMatchSpeech(ranked), { next_step: "describe_problem" });
             }
-            if (spokenPlace === undefined) {
+            if (spokenPlace === undefined || spokenPlace === null) {
                 return service === undefined
                     ? answer(serviceMatchSpeech(ranked), { next_step: "choose_service" })
                     : answer(`${serviceMatchSpeech(ranked)} ${WHERE_SPEECH}`, { next_step: "say_place" });

@@ -48,17 +48,17 @@ export function registerDraftReportTool(server: McpServer, deps: ToolDeps, calle
                 "the changed field; nothing else is lost. When ready is true, read the readback and ask the user " +
                 "to confirm before calling submit_report. Drafts expire after 15 minutes.",
             inputSchema: z.object({
-                draft_id: z.string().optional().describe("The draft to update. Leave out to start a new draft."),
-                location_id: z.string().optional().describe("The location_id. Required for a new draft."),
-                service_code: z.string().optional().describe("The service_code. Required for a new draft."),
+                draft_id: z.string().nullish().describe("The draft to update. Leave out to start a new draft."),
+                location_id: z.string().nullish().describe("The location_id. Required for a new draft."),
+                service_code: z.string().nullish().describe("The service_code. Required for a new draft."),
                 description: z
                     .string()
                     .max(500)
-                    .optional()
+                    .nullish()
                     .describe('Extra details in the user\'s words, for example "huge, in the right lane".'),
                 answers: z
                     .record(z.string(), z.string().max(200))
-                    .optional()
+                    .nullish()
                     .describe(
                         "Answers to the questions, keyed by question code, in the user's words. " +
                             'For example {"position": "in the road"} or {"condition": "it\'s flickering"}.',
@@ -68,8 +68,9 @@ export function registerDraftReportTool(server: McpServer, deps: ToolDeps, calle
             annotations: { readOnlyHint: false, idempotentHint: false, openWorldHint: false, destructiveHint: false },
         },
         async (args) => {
-            const draftId = args.draft_id;
-            const locationId = args.location_id;
+            // Models often send null for a field they mean to leave out.
+            const draftId = args.draft_id ?? undefined;
+            const locationId = args.location_id ?? undefined;
             const found = await resolveResident(deps, caller);
             if ("failure" in found) {
                 return found.failure;
@@ -108,8 +109,8 @@ export function registerDraftReportTool(server: McpServer, deps: ToolDeps, calle
                 previous,
                 location,
                 service,
-                description: args.description,
-                answers: args.answers,
+                description: args.description ?? undefined,
+                answers: args.answers ?? undefined,
             });
             return toolSuccess({ speech: saved.speech, data: describeDraft(saved, service) });
         },

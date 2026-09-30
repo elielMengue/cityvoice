@@ -3,12 +3,12 @@ import { z } from "zod";
 
 import { findServiceType } from "../catalog/serviceCatalog";
 import { spokenRequestNumber } from "../speech/speech";
-import { EXPIRED_DRAFT_SPEECH, missingAttributes } from "./draftReport";
+import { EXPIRED_DRAFT_SPEECH, missingAttributes } from "../reports/drafts";
 import type { Caller, ToolDeps } from "./toolContext";
 import { resolveResident } from "./toolContext";
 import { toolFailure, toolSuccess } from "./toolResult";
 
-export const SUBMIT_REPORT_TOOL = "submit_report";
+const SUBMIT_REPORT_TOOL = "submit_report";
 
 const outputSchema = z.object({
     speech: z.string(),

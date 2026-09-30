@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import { buildDemoSeed, DC_BOUNDS } from "../src/demo/dcDemo";
 import { distanceMeters, isInside } from "../src/geo/geo";
-import { DEFAULT_RADIUS_METERS } from "../src/tools/findNearbyReports";
+import { DEFAULT_RADIUS_METERS } from "../src/reports/nearby";
 
 const now = new Date("2026-10-15T14:00:00Z");
 const seed = buildDemoSeed(now);

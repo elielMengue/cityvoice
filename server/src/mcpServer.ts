@@ -8,36 +8,38 @@ import { registerGetMyReportsTool } from "./tools/getMyReports";
 import { registerListServiceTypesTool } from "./tools/listServiceTypes";
 import { registerPingTool } from "./tools/ping";
 import { registerResolveLocationTool } from "./tools/resolveLocation";
+import { registerStartReportTool } from "./tools/startReport";
 import { registerSubmitReportTool } from "./tools/submitReport";
 import { registerSupportReportTool } from "./tools/supportReport";
 import type { Caller, ToolDeps } from "./tools/toolContext";
 
-export const SERVER_NAME = "cityvoice";
-export const SERVER_VERSION = "0.2.0";
+const SERVER_NAME = "cityvoice";
+const SERVER_VERSION = "0.2.0";
 
 /** Anything bigger than this is not a voice request. */
 const MAX_REQUEST_BODY_BYTES = 256 * 1024;
 
 const INSTRUCTIONS =
     "CityVoice lets residents report non-emergency city problems (potholes, broken streetlights, missed trash, " +
-    "graffiti and similar) and follow them up. To report: list_service_types first, with the user's own words, " +
-    "because it screens for emergencies; if it says to call 911, say only that and stop. Then resolve_location, " +
-    "then find_nearby_reports. If a neighbor already reported it, offer support_report. Otherwise draft_report, ask any " +
-    "missing questions, read the readback, and call submit_report only after the user says yes. " +
-    "To follow up, get_my_reports. Each tool returns a speech field: say it as it is.";
+    "graffiti and similar) and follow them up. To report, call start_report with the problem and the place in " +
+    "the user's words. It screens for emergencies: if it says to call 911, say only that and stop. Otherwise " +
+    "follow its next_step: support_report for a neighbor's report, draft_report for the user's answers, and " +
+    "submit_report only after the user says yes. The other tools are for corrections. To follow up, " +
+    "get_my_reports. Each tool returns a speech field: say it as it is.";
 
 export type McpFetch = (request: Request, authInfo: AuthInfo | undefined) => Promise<Response>;
 
 /** The resident id rides in the verified token's extra claims. */
-export function callerFrom(authInfo: AuthInfo | undefined): Caller {
+function callerFrom(authInfo: AuthInfo | undefined): Caller {
     const residentId = authInfo?.extra?.["residentId"];
     return { residentId: typeof residentId === "string" ? residentId : undefined };
 }
 
 /** Builds a fresh MCP server, with every tool, for one caller. */
-export function createMcpServer(deps: ToolDeps, caller: Caller): McpServer {
+function createMcpServer(deps: ToolDeps, caller: Caller): McpServer {
     const server = new McpServer({ name: SERVER_NAME, version: SERVER_VERSION }, { instructions: INSTRUCTIONS });
     registerPingTool(server);
+    registerStartReportTool(server, deps, caller);
     registerResolveLocationTool(server, deps, caller);
     registerListServiceTypesTool(server, deps);
     registerFindNearbyReportsTool(server, deps, caller);

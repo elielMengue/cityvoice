@@ -1,50 +1,21 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 
-import { isInside } from "../geo/geo";
-import type { ResolvedLocation } from "../geo/locationId";
-import { encodeLocationId } from "../geo/locationId";
-import { joinWithAnd } from "../speech/speech";
+import { candidatesSpeech, foundPlaceSpeech, PLACE_NOT_FOUND_SPEECH, resolvePlace } from "../reports/place";
+import { describePlace, placeSchema } from "./schemas";
 import type { Caller, ToolDeps } from "./toolContext";
-import { resolveResident } from "./toolContext";
+import { NOT_LINKED_SPEECH } from "./toolContext";
 import { toolFailure, toolSuccess } from "./toolResult";
 
-export const RESOLVE_LOCATION_TOOL = "resolve_location";
-
-/** Below this, we ask the resident to pick rather than guess. */
-export const MIN_CONFIDENCE = 0.7;
-const MAX_CANDIDATES = 3;
-
-// "my house", "in front of my home", "our building", or just "home".
-const HOME_PATTERN = /\b(my|our)\s+(house|home|place|building|apartment|door)\b|^\s*(at\s+)?home\s*$/i;
-
-const candidateSchema = z.object({
-    location_id: z.string(),
-    address: z.string(),
-    lat: z.number(),
-    lng: z.number(),
-});
+const RESOLVE_LOCATION_TOOL = "resolve_location";
 
 const outputSchema = z.object({
     speech: z.string(),
-    data: z.object({
-        location_id: z.string().optional(),
-        address: z.string().optional(),
-        lat: z.number().optional(),
-        lng: z.number().optional(),
+    data: placeSchema.partial().extend({
         confidence: z.number(),
-        candidates: z.array(candidateSchema),
+        candidates: z.array(placeSchema),
     }),
 });
-
-function toCandidate(location: ResolvedLocation): z.infer<typeof candidateSchema> {
-    return {
-        location_id: encodeLocationId(location),
-        address: location.address,
-        lat: location.point.lat,
-        lng: location.point.lng,
-    };
-}
 
 export function registerResolveLocationTool(server: McpServer, deps: ToolDeps, caller: Caller): void {
     server.registerTool(
@@ -52,8 +23,8 @@ export function registerResolveLocationTool(server: McpServer, deps: ToolDeps, c
         {
             title: "Resolve location",
             description:
-                "Turns the place the user mentions into a confirmed location for a city report. " +
-                "Call it after list_service_types when the user reports a problem, and again if they correct the place. " +
+                "Turns the place the user mentions into a confirmed location. start_report already does this; " +
+                "use this tool when the user corrects the place or picks one of several candidates. " +
                 "Returns a location_id to pass to the other tools. If several places could match, it returns " +
                 "up to three candidates and no location_id: read them to the user and call again with their choice.",
             inputSchema: z.object({
@@ -71,48 +42,23 @@ export function registerResolveLocationTool(server: McpServer, deps: ToolDeps, c
             annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
         },
         async ({ spoken_place: spokenPlace }) => {
-            if (HOME_PATTERN.test(spokenPlace)) {
-                const found = await resolveResident(deps, caller);
-                if ("failure" in found) {
-                    return found.failure;
-                }
-                const home = { address: found.resident.homeAddress, point: found.resident.homePoint, isHome: true };
-                return toolSuccess({
-                    speech: `I'll use your home address, ${home.address}.`,
-                    data: { ...toCandidate(home), confidence: 1, candidates: [] },
-                });
+            const outcome = await resolvePlace(deps, caller, spokenPlace);
+            switch (outcome.kind) {
+                case "not_linked":
+                    return toolFailure(NOT_LINKED_SPEECH);
+                case "not_found":
+                    return toolFailure(PLACE_NOT_FOUND_SPEECH);
+                case "ambiguous":
+                    return toolSuccess({
+                        speech: candidatesSpeech(outcome.candidates),
+                        data: { confidence: outcome.confidence, candidates: outcome.candidates.map(describePlace) },
+                    });
+                case "found":
+                    return toolSuccess({
+                        speech: foundPlaceSpeech(outcome.location),
+                        data: { ...describePlace(outcome.location), confidence: outcome.confidence, candidates: [] },
+                    });
             }
-
-            const matches = (await deps.geocoder.geocode(spokenPlace)).filter((candidate) =>
-                isInside(candidate.point, deps.serviceArea),
-            );
-            const [best, runnerUp] = matches;
-            if (best === undefined) {
-                return toolFailure(
-                    "I couldn't find that place in the area CityVoice covers. " +
-                        "Could you tell me the nearest intersection, like 14th and U?",
-                );
-            }
-
-            const isClearWinner = runnerUp === undefined || runnerUp.relevance < best.relevance;
-            if (best.relevance >= MIN_CONFIDENCE && isClearWinner) {
-                const location = { address: best.address, point: best.point, isHome: false };
-                return toolSuccess({
-                    speech: `I found ${location.address}.`,
-                    data: { ...toCandidate(location), confidence: best.relevance, candidates: [] },
-                });
-            }
-
-            const candidates = matches
-                .slice(0, MAX_CANDIDATES)
-                .map((match) => toCandidate({ address: match.address, point: match.point, isHome: false }));
-            return toolSuccess({
-                speech: `A few places could match: ${joinWithAnd(
-                    candidates.map((candidate) => candidate.address),
-                    "or",
-                )}. Which one is it?`,
-                data: { confidence: best.relevance, candidates },
-            });
         },
     );
 }

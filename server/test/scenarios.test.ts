@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { MAX_SPEECH_WORDS, wordCount } from "../src/speech/speech";
-import { DRAFT_TTL_MS } from "../src/tools/draftReport";
+import { DRAFT_TTL_MS } from "../src/reports/drafts";
 import { NOT_LINKED_SPEECH } from "../src/tools/toolContext";
 import type { TestBackend } from "./support/testApp";
 import { createTestApp as createAppOn, TEST_BACKENDS } from "./support/testApp";
@@ -14,6 +14,120 @@ import { createTestApp as createAppOn, TEST_BACKENDS } from "./support/testApp";
 
 describe.each([...TEST_BACKENDS])("with the %s store", (backend: TestBackend) => {
     const createTestApp = () => createAppOn(backend);
+
+    describe("start_report: the first answer in one call", () => {
+        test("scenario A: a new pothole goes straight to the city's question", async () => {
+            const app = createTestApp();
+
+            const started = await app.callTool(
+                "start_report",
+                { problem_description: "there's a huge pothole", spoken_place: "14th and U Street" },
+                "daniel",
+            );
+
+            expect(started.speech).toBe(
+                "I found 14th Street and U Street Northwest. I don't see any open pothole reports there. " +
+                    "Is it in the road or in a crosswalk?",
+            );
+            expect(started.data["next_step"]).toBe("answer_question");
+            const draftId = (started.data["draft"] as { draft_id: string }).draft_id;
+
+            const answered = await app.callTool(
+                "draft_report",
+                { draft_id: draftId, answers: { position: "in the road" } },
+                "daniel",
+            );
+            expect(answered.data["ready"]).toBe(true);
+            const submitted = await app.callTool(
+                "submit_report",
+                { draft_id: draftId, user_confirmed: true },
+                "daniel",
+            );
+            expect(submitted.speech).toStartWith("Done. Your request number ends in 4 8 2 1.");
+        });
+
+        test("scenario B: a neighbor's report is offered instead of a draft", async () => {
+            const app = createTestApp();
+
+            const started = await app.callTool(
+                "start_report",
+                { problem_description: "the streetlight is out", spoken_place: "in front of my house" },
+                "maria",
+            );
+
+            expect(started.speech).toBe(
+                "I'll use your home address, 1421 Columbia Road Northwest. Two neighbors already reported a " +
+                    "streetlight out near your home, 4 days ago. Do you want to add your support so the city sees " +
+                    "it matters, or file a separate report?",
+            );
+            expect(started.data["next_step"]).toBe("support_or_new_report");
+            expect(started.data["draft"]).toBeUndefined();
+        });
+
+        test("scenario D: an emergency stops everything, even before the place", async () => {
+            const app = createTestApp();
+
+            const started = await app.callTool(
+                "start_report",
+                { problem_description: "there's a gas smell in my building", spoken_place: "my building" },
+                "aisha",
+            );
+
+            expect(started.isError).toBe(true);
+            expect(started.speech).toBe(
+                "That could be an emergency. Please leave the building and call 911 now. I haven't filed anything.",
+            );
+        });
+
+        test("asks where when the place is missing", async () => {
+            const app = createTestApp();
+
+            const started = await app.callTool("start_report", { problem_description: "big pothole" }, "daniel");
+
+            expect(started.speech).toStartWith("That sounds like a pothole report. Where is it?");
+            expect(started.data["next_step"]).toBe("say_place");
+        });
+
+        test("asks which place when several could match", async () => {
+            const app = createTestApp();
+
+            const started = await app.callTool(
+                "start_report",
+                { problem_description: "pothole", spoken_place: "14th Street" },
+                "daniel",
+            );
+
+            expect(started.data["next_step"]).toBe("choose_place");
+            expect(started.data["candidates"] as unknown[]).toHaveLength(3);
+        });
+
+        test("asks which service when the problem is not clear", async () => {
+            const app = createTestApp();
+
+            const started = await app.callTool(
+                "start_report",
+                { problem_description: "graffiti on the trash can", spoken_place: "14th and U" },
+                "daniel",
+            );
+
+            expect(started.speech).toBe(
+                "I found 14th Street and U Street Northwest. That could be a missed trash pickup report or a " +
+                    "graffiti report. Which fits best?",
+            );
+            expect(started.data["next_step"]).toBe("choose_service");
+        });
+
+        test("tells an unlinked resident how to link", async () => {
+            const app = createTestApp();
+
+            const started = await app.callTool("start_report", {
+                problem_description: "pothole",
+                spoken_place: "14th and U",
+            });
+
+            expect(started.speech).toBe(NOT_LINKED_SPEECH);
+        });
+    });
 
     describe("Scenario A: Daniel reports a new pothole", () => {
         test("from the first sentence to a request number, in three answers", async () => {

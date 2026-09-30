@@ -17,6 +17,7 @@ const EXPECTED_TOOLS = [
     "list_service_types",
     "ping",
     "resolve_location",
+    "start_report",
     "submit_report",
     "support_report",
 ];

@@ -1,0 +1,30 @@
+{
+    "$schema": "../node_modules/wrangler/config-schema.json",
+    "name": "cityvoice-simulator",
+    "main": "src/worker.ts",
+    "compatibility_date": "2026-09-28",
+    // The page, its script and its styles. Anything that is not a file here
+    // (/api/*, /login, /callback) reaches the Worker.
+    "assets": { "directory": "./public", "binding": "ASSETS" },
+    "observability": { "enabled": true },
+    // GEMINI_API_KEY is a secret: .env.local for `bun run dev`, and
+    // `wrangler secret put GEMINI_API_KEY --env production` online.
+    "vars": {
+        "CITYVOICE_URL": "https://cityvoice.demop.workers.dev",
+        // Public OAuth client registered with CityVoice for both redirect URIs
+        // (localhost:8791 and the deployed simulator). Not a secret.
+        "CLIENT_ID": "BaI2IsJ-KlbWExFT",
+        // Tried in order; the free tier is often busy.
+        "GEMINI_MODELS": "gemini-3.8-flash,gemini-3.7-flash,gemini-3.6-flash,gemini-flash-latest",
+    },
+    "env": {
+        "production": {
+            "name": "cityvoice-simulator",
+            "vars": {
+                "CITYVOICE_URL": "https://cityvoice.demop.workers.dev",
+                "CLIENT_ID": "BaI2IsJ-KlbWExFT",
+                "GEMINI_MODELS": "gemini-3.8-flash,gemini-3.7-flash,gemini-3.6-flash,gemini-flash-latest",
+            },
+        },
+    },
+}

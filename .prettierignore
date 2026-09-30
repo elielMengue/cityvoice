@@ -2,3 +2,4 @@ node_modules
 bun.lock
 cdk.out
 .wrangler
+simulator/public/app.js

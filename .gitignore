@@ -7,3 +7,4 @@ cdk.out/
 *.log
 .DS_Store
 .wrangler/
+simulator/public/app.js

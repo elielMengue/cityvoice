@@ -55,6 +55,10 @@ async function decide({ oauth, residents }: AuthorizeDeps, request: Request): Pr
         metadata: { residentName: resident.name },
         scope: approved.request.scope,
         props,
+        // Demo accounts are shared: every judge may link as Maria. By default a
+        // new link revokes the user's earlier ones, so one judge would log the
+        // other out mid-demo. Each link stays valid on its own instead.
+        revokeExistingGrants: false,
     });
     approved.headers.set("location", redirectTo);
     return new Response(null, { status: 302, headers: approved.headers });

@@ -147,4 +147,47 @@ console.log(`info  round trip ${elapsed} ms`);
 const forged = await mcpCall(`${tokens.access_token}x`, "ping", {});
 check(forged.status === 401, "a tampered token is refused");
 
+// 8. Demo accounts are shared by every judge: a second link as the same
+// resident must not log the first one out.
+async function linkAgain(): Promise<string | undefined> {
+    const secondVerifier = base64Url(crypto.getRandomValues(new Uint8Array(32)));
+    const secondUrl = new URL(authorizeUrl);
+    secondUrl.searchParams.set(
+        "code_challenge",
+        base64Url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(secondVerifier))),
+    );
+    const page = await fetch(secondUrl, { redirect: "manual" });
+    const secondHandle = /name="handle" value="([^"]+)"/.exec(await page.text())?.[1] ?? "";
+    const secondCookies = page.headers
+        .getSetCookie()
+        .map((cookie) => cookie.split(";")[0])
+        .join("; ");
+    const approved = await fetch(secondUrl, {
+        method: "POST",
+        redirect: "manual",
+        headers: { "content-type": "application/x-www-form-urlencoded", cookie: secondCookies },
+        body: new URLSearchParams({ handle: secondHandle, decision: "approve", resident: RESIDENT }).toString(),
+    });
+    const secondCode = new URL(approved.headers.get("location") ?? REDIRECT_URI).searchParams.get("code") ?? "";
+    const exchanged = (await (
+        await fetch(server.token_endpoint, {
+            method: "POST",
+            headers: { "content-type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+                grant_type: "authorization_code",
+                code: secondCode,
+                redirect_uri: REDIRECT_URI,
+                client_id: registration.client_id,
+                code_verifier: secondVerifier,
+                resource: `${baseUrl}/mcp`,
+            }).toString(),
+        })
+    ).json()) as { access_token?: string };
+    return exchanged.access_token;
+}
+const secondToken = await linkAgain();
+check(typeof secondToken === "string", "a second person can link as the same demo resident");
+const firstStillWorks = await mcpCall(tokens.access_token, "ping", {});
+check(firstStillWorks.status === 200, "the first link keeps working after the second one");
+
 console.log("\nAccount linking works end to end.");

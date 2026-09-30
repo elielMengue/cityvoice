@@ -9,6 +9,25 @@ Time lost is our own rough estimate.
 
 ## 2026-09-28
 
+### We could not activate an AWS account from the Central African Republic
+
+- **Product:** AWS account sign-up
+- **Tried:** to add a payment card and verify the phone number, the last steps
+  before any AWS service can be used, including the Free plan.
+- **Expected:** a verification code by SMS or voice call, or another way to
+  verify, such as email.
+- **Happened:** the SMS code never arrived. The page offers no alternative, so
+  the account stays unusable. Without an active account there are no Free
+  plan credits either.
+- **Workaround:** a support case (Account activation, Phone verification) is
+  possible without an active account, but we could not wait for it. We moved
+  hosting to Cloudflare's free tier and the simulator's model to Gemini, and
+  dropped the AWS Builder mini challenge.
+- **Impact:** this decided our whole stack. A hackathon open to every country
+  loses builders at the very first step when phone verification is the only
+  path.
+- **Time lost:** 1 hour, plus the redesign.
+
 ### AWS App Runner is closed to new customers
 
 - **Product:** AWS App Runner
@@ -93,3 +112,85 @@ Time lost is our own rough estimate.
   script or is not on `PATH`. It does not say which tool it was configuring.
 - **Expected:** skip the tool it cannot configure, name it, and carry on.
 - **Time lost:** 15 minutes.
+
+### A Worker crashes if its main module exports a constant
+
+- **Product:** Cloudflare Workers runtime (workerd), through `wrangler dev`
+- **Tried:** to export a few path constants from `worker.ts` for reuse.
+- **Happened:** the runtime refused to start with "Incorrect type for map
+  entry 'AUTHORIZE_PATH': the provided value is not of type 'function or
+  ExportedHandler'". Every named export of the main module is treated as an
+  entry point.
+- **Expected:** either a lint or type error at build time, or a message that
+  says to move non-handler exports elsewhere.
+- **Workaround:** keep only the default export as a value in the main module,
+  and say so in a comment.
+- **Time lost:** 10 minutes.
+
+### Cloudflare types and Bun types do not mix
+
+- **Product:** `@cloudflare/workers-types`, `@cloudflare/workers-oauth-provider`
+- **Happened:** the OAuth library's types rely on Cloudflare's global types
+  (`ExportedHandler`, `Cloudflare.Env`). Installing them next to Bun's types
+  brings two conflicting definitions of `Request` and `Response`, and without
+  them every handler parameter silently becomes `any`.
+- **Workaround:** leave the Cloudflare globals out and type each handler's
+  parameters by hand.
+- **Time lost:** 15 minutes.
+
+### `wrangler dev` on Windows adds about 240 ms to every local request
+
+- **Product:** Wrangler 4.143 on Windows 11
+- **Happened:** a `ping` that takes under 30 ms inside the Worker took 250 ms
+  from the outside, on every request, not just the first. It makes local
+  latency checks against the 500 ms budget meaningless.
+- **Workaround:** measure inside the Worker from our own request log, and
+  measure the real round trip only once deployed.
+- **Time lost:** 15 minutes.
+
+### A Worker cannot time its own requests
+
+- **Product:** Cloudflare Workers in production
+- **Tried:** to check the 500 ms budget with the `latencyMs` field we log for
+  every request.
+- **Happened:** it read 0 ms online, while `wrangler dev` showed real values.
+  Workers freeze the clock during execution as a defence against timing
+  attacks, so `performance.now()` cannot measure a request.
+- **Workaround:** read `wallTime` from Cloudflare's own request events
+  (`wrangler tail` or Workers observability). MCP calls take 66 to 166 ms
+  there, the slowest being the first call on a fresh isolate.
+- **Time lost:** 15 minutes.
+
+### Gemini's free tier is too busy to rely on for a live demo
+
+- **Product:** Gemini API, free tier
+- **Tried:** to use Gemini as the simulated Alexa+ model, choosing tools over
+  several steps per turn.
+- **Happened:** most requests to the newest models (3.8, 3.7, flash-latest)
+  came back with 503 "high demand". `gemini-2.5-flash` answered 404: no longer
+  available to new users. Turns that did complete took 11 to 42 seconds, of
+  which our tools used about 2. In one turn, all four models failed.
+- **Workaround:** the simulator tries a list of models with a timeout and
+  jittered pauses, and says plainly when no model answers. This keeps it
+  honest but not fast. We are looking at a faster model host for the demo.
+- **Time lost:** 45 minutes.
+
+### Workers reject a stored `fetch` with "Illegal invocation"
+
+- **Product:** Cloudflare Workers runtime
+- **Happened:** keeping the global `fetch` in a class field and calling it as
+  `this.fetch(...)` fails in Workers, while Bun runs it fine, so every unit
+  test passed and the first real turn failed.
+- **Workaround:** a small `boundFetch` wrapper used everywhere, with a comment
+  explaining why.
+- **Time lost:** 10 minutes.
+
+### Changing a D1 database id silently resets local data
+
+- **Product:** Wrangler, local D1
+- **Happened:** after replacing the placeholder `database_id` with the real
+  one, `wrangler dev` started on an empty local database. The first request
+  failed with "no such table: residents". Local state is keyed by the id, but
+  nothing says a new local database was created.
+- **Workaround:** run the local migration and seed again after changing an id.
+- **Time lost:** 5 minutes.

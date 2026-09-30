@@ -15,11 +15,11 @@ Built for the Alexa+ track of
 
 ## Status
 
-A resident can report a problem from start to finish, and support a report a
-neighbor already filed. Reports go to a sandbox that behaves like a city's
-Open311 server, never to a real city. Following up on reports, the map for
-screens, account linking, shared storage and the HTTP connector for real
-Open311 cities come next.
+A resident can link their account, report a problem from start to finish,
+support a report a neighbor already filed, and ask how their reports are
+going. Reports go to a sandbox that behaves like a city's Open311 server,
+never to a real city. The map for screens, the Alexa+ simulator and the HTTP
+connector for real Open311 cities come next.
 
 ## Tools
 
@@ -31,6 +31,7 @@ Open311 cities come next.
 | `draft_report`        | Builds the report over several turns and asks what the city still needs     |
 | `submit_report`       | Sends the draft after an explicit yes; safe to retry                        |
 | `support_report`      | Adds the resident's support to a neighbor's report, once per person         |
+| `get_my_reports`      | Tells the resident where their reports stand, three at a time               |
 | `ping`                | Checks that the service is up                                               |
 
 Every tool returns `speech`, a sentence Alexa can say as it is, and `data`,
@@ -60,6 +61,25 @@ Account linking is not built yet. Until it is, pick the demo resident with
 the `DEMO_RESIDENT` variable (for example `DEMO_RESIDENT=maria bun dev`), or per
 request with the `x-cityvoice-demo-resident` header. This mode trusts the
 caller completely and is only meant for a local machine.
+
+### On Cloudflare Workers
+
+Production runs on Cloudflare Workers, with the data in D1 and account linking
+over OAuth 2.1 with PKCE. Locally, no Cloudflare account is needed:
+
+```bash
+cd server
+bun run db:migrate:local
+bun run db:seed:local
+bun run worker:dev:oauth
+```
+
+`bun run smoke:oauth` then walks through account linking the way Alexa+ does
+and checks every step: the 401 challenge, discovery, PKCE, the consent page,
+the token, and a tool call as the chosen resident. `db:seed:local` also resets
+the demo data, which is how each take of the demo video starts clean.
+
+### By hand
 
 To call it by hand, use the MCP Inspector:
 

@@ -6,7 +6,7 @@ import type { Caller, ToolDeps } from "./toolContext";
 import { resolveResident } from "./toolContext";
 import { toolFailure, toolSuccess } from "./toolResult";
 
-export const SUPPORT_REPORT_TOOL = "support_report";
+const SUPPORT_REPORT_TOOL = "support_report";
 
 const outputSchema = z.object({
     speech: z.string(),

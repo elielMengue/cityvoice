@@ -275,14 +275,12 @@ async function sendTurn(utterance: string): Promise<void> {
 
 /* ---------- Voice in ---------- */
 
-const RecognitionClass =
-    (
-        window as unknown as {
-            SpeechRecognition?: RecognitionConstructor;
-            webkitSpeechRecognition?: RecognitionConstructor;
-        }
-    ).SpeechRecognition ??
-    (window as unknown as { webkitSpeechRecognition?: RecognitionConstructor }).webkitSpeechRecognition;
+// Chrome and Edge still ship the recognizer under its prefixed name.
+const speechWindow: Window & {
+    readonly SpeechRecognition?: RecognitionConstructor;
+    readonly webkitSpeechRecognition?: RecognitionConstructor;
+} = window;
+const RecognitionClass = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
 
 let recognition: Recognition | undefined;
 

@@ -29,7 +29,7 @@ interface ServiceRequestRow {
 }
 
 /** Drops SQL NULLs so the objects look exactly like the in-memory sandbox's. */
-export function toServiceRequest(row: ServiceRequestRow): ServiceRequest {
+function toServiceRequest(row: ServiceRequestRow): ServiceRequest {
     return {
         service_request_id: row.service_request_id,
         status: row.status,

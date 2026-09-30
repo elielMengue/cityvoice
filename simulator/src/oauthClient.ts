@@ -39,7 +39,7 @@ function randomString(): string {
     return base64Url(crypto.getRandomValues(new Uint8Array(32)));
 }
 
-export function resourceFor(config: OAuthClientConfig): string {
+function resourceFor(config: OAuthClientConfig): string {
     return `${config.serverUrl}/mcp`;
 }
 

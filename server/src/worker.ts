@@ -140,7 +140,7 @@ function buildOAuthWorker(config: Config): WorkerFetch {
             authorization_servers: [publicUrl],
         },
     });
-    return (request, env, ctx) => provider.fetch(request, env as never, ctx as never);
+    return (request, env, ctx) => provider.fetch(request, env, ctx);
 }
 
 let cached: { readonly env: WorkerEnv; readonly fetch: WorkerFetch } | undefined;

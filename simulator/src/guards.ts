@@ -1,9 +1,8 @@
 /**
- * Rules the simulated Alexa+ enforces in code, because a model can break a
- * rule written in its prompt. Open models were seen filing a report the
- * resident never confirmed, and answering the city's questions for them.
- * Real Alexa+ confirms actions with the customer itself; this is our
- * stand-in for that.
+ * Rules the simulator enforces in code rather than trusting the prompt: a
+ * report is only sent after the resident's clear yes, and only with answers
+ * the resident gave. Alexa+ confirms actions with the customer itself; the
+ * simulator has to do the same on its own.
  */
 
 /** Tools that change something for the resident, and so need their clear yes. */

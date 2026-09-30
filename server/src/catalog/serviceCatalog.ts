@@ -181,7 +181,7 @@ export const SERVICE_TYPES: readonly ServiceType[] = [
     },
 ];
 
-export const MAX_RANKED_SERVICES = 5;
+const MAX_RANKED_SERVICES = 5;
 
 export function findServiceType(code: string): ServiceType | undefined {
     return SERVICE_TYPES.find((service) => service.code === code);

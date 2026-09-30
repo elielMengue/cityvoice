@@ -9,13 +9,13 @@ import type { Caller, ToolDeps } from "./toolContext";
 import { resolveResident } from "./toolContext";
 import { toolFailure, toolSuccess } from "./toolResult";
 
-export const GET_MY_REPORTS_TOOL = "get_my_reports";
+const GET_MY_REPORTS_TOOL = "get_my_reports";
 
 /**
  * Three reports fit in one spoken answer under 60 words. The page holds
  * exactly what is said, so the screen never shows more than Alexa read out.
  */
-export const REPORTS_PER_PAGE = 3;
+const REPORTS_PER_PAGE = 3;
 
 const statusFilterSchema = z.enum(["open", "closed", "all"]);
 type StatusFilter = z.infer<typeof statusFilterSchema>;
@@ -44,7 +44,7 @@ const outputSchema = z.object({
 });
 
 /** "is in progress: a crew has been assigned", "was closed today", "is still waiting for the city". */
-export function spokenStatus(request: ServiceRequest, now: Date): string {
+function spokenStatus(request: ServiceRequest, now: Date): string {
     const updated = new Date(request.updated_datetime ?? request.requested_datetime);
     if (request.status === "closed") {
         return `was closed ${ageInWords(updated, now)}`;
@@ -99,7 +99,9 @@ export function registerGetMyReportsTool(server: McpServer, deps: ToolDeps, call
             outputSchema,
             annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
         },
-        async ({ status = "all", cursor }) => {
+        async (args) => {
+            const status = args.status ?? "all";
+            const cursor = args.cursor;
             const found = await resolveResident(deps, caller);
             if ("failure" in found) {
                 return found.failure;

@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { toolSuccess } from "./toolResult";
 
-export const PING_TOOL_NAME = "ping";
+const PING_TOOL_NAME = "ping";
 
 /**
  * A health probe that goes through the full MCP path, not just HTTP. It lets

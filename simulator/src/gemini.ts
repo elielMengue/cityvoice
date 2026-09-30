@@ -29,7 +29,7 @@ interface GenerateResponse {
  */
 const FOREIGN_CALL_SIGNATURE = "skip_thought_signature_validator";
 
-export function withSignatures(contents: readonly Content[]): Content[] {
+function withSignatures(contents: readonly Content[]): Content[] {
     return contents.map((content) =>
         content.role !== "model"
             ? content

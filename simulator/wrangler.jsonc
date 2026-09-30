@@ -29,6 +29,8 @@
     "env": {
         "production": {
             "name": "cityvoice-simulator",
+            // Bindings are not inherited by environments, so AI is declared again.
+            "ai": { "binding": "AI" },
             "ratelimits": [
                 { "name": "TURN_LIMITER", "namespace_id": "1003", "simple": { "limit": 10, "period": 60 } },
                 { "name": "LOGIN_LIMITER", "namespace_id": "1004", "simple": { "limit": 10, "period": 60 } },

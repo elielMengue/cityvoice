@@ -51,7 +51,8 @@ export function registerListServiceTypesTool(server: McpServer, deps: ToolDeps):
             description:
                 "Finds which city service fits the problem the user describes, for example pothole, streetlight out, " +
                 "missed trash pickup, graffiti, illegal dumping, sidewalk damage, abandoned vehicle or tree hazard. " +
-                "Call it with the user's own words before drafting a report. Returns up to five services, best first, " +
+                "Call it first, with the user's own words, before resolve_location: it also screens for emergencies. " +
+                "Returns up to five services, best first, " +
                 "with the questions the city needs answered. If the description sounds like an emergency " +
                 "(fire, smoke, gas smell, someone hurt, a downed power line), it returns an error telling the user " +
                 "to call 911: read that to the user and do not file anything.",

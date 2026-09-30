@@ -53,7 +53,7 @@ export function registerResolveLocationTool(server: McpServer, deps: ToolDeps, c
             title: "Resolve location",
             description:
                 "Turns the place the user mentions into a confirmed location for a city report. " +
-                "Call it first whenever the user reports a problem, and again if they correct the place. " +
+                "Call it after list_service_types when the user reports a problem, and again if they correct the place. " +
                 "Returns a location_id to pass to the other tools. If several places could match, it returns " +
                 "up to three candidates and no location_id: read them to the user and call again with their choice.",
             inputSchema: z.object({

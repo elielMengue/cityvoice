@@ -20,8 +20,9 @@ const MAX_REQUEST_BODY_BYTES = 256 * 1024;
 
 const INSTRUCTIONS =
     "CityVoice lets residents report non-emergency city problems (potholes, broken streetlights, missed trash, " +
-    "graffiti and similar) and follow them up. To report: resolve_location, then list_service_types, then " +
-    "find_nearby_reports. If a neighbor already reported it, offer support_report. Otherwise draft_report, ask any " +
+    "graffiti and similar) and follow them up. To report: list_service_types first, with the user's own words, " +
+    "because it screens for emergencies; if it says to call 911, say only that and stop. Then resolve_location, " +
+    "then find_nearby_reports. If a neighbor already reported it, offer support_report. Otherwise draft_report, ask any " +
     "missing questions, read the readback, and call submit_report only after the user says yes. " +
     "To follow up, get_my_reports. Each tool returns a speech field: say it as it is.";
 

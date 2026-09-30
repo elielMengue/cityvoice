@@ -1,6 +1,6 @@
 /**
- * The browser side of the simulator: microphone, voice, the Echo Show screen
- * and the "behind the scenes" panel. The conversation lives here and is sent
+ * The browser side of the simulator: microphone, voice, what Alexa shows,
+ * and the "behind the scenes" drawer. The conversation lives here and is sent
  * with every turn, so the server keeps nothing between turns.
  */
 
@@ -46,9 +46,11 @@ function element<T extends HTMLElement>(id: string): T {
     return found as T;
 }
 
+const greeting = element<HTMLHeadingElement>("greeting");
+const said = element<HTMLParagraphElement>("said");
 const speechText = element<HTMLParagraphElement>("speech");
 const card = element<HTMLDivElement>("card");
-const lightBar = element<HTMLDivElement>("light-bar");
+const voice = element<HTMLDivElement>("voice");
 const trace = element<HTMLOListElement>("trace");
 const mic = element<HTMLButtonElement>("mic");
 const hint = element<HTMLParagraphElement>("hint");
@@ -59,8 +61,28 @@ const textInput = element<HTMLInputElement>("text-input");
 let conversation: unknown[] = [];
 let busy = false;
 
-function setLight(state: "idle" | "listening" | "thinking" | "speaking"): void {
-    lightBar.dataset["state"] = state;
+type VoiceState = "idle" | "listening" | "thinking" | "speaking";
+
+const STATE_HINTS: Record<VoiceState, string> = {
+    idle: "Tap the microphone and speak.",
+    listening: "Listening...",
+    thinking: "Thinking...",
+    speaking: "Tap the microphone to interrupt.",
+};
+
+/** The ring around the microphone, and the line under it, say what Alexa is doing. */
+function setState(state: VoiceState): void {
+    voice.dataset["state"] = state;
+    hint.textContent = STATE_HINTS[state];
+}
+
+/** Replaces the greeting with the exchange: what the resident said, and Alexa's answer. */
+function show(utterance: string | undefined, answer: string): void {
+    greeting.hidden = true;
+    said.hidden = utterance === undefined;
+    said.textContent = utterance === undefined ? "" : `"${utterance}"`;
+    speechText.hidden = false;
+    speechText.textContent = answer;
 }
 
 function node(tag: string, text?: string, className?: string): HTMLElement {
@@ -134,7 +156,7 @@ async function speak(text: string): Promise<void> {
         }
         utterance.onend = () => resolve();
         utterance.onerror = () => resolve();
-        setLight("speaking");
+        setState("speaking");
         speechSynthesis.speak(utterance);
     });
 }
@@ -218,7 +240,7 @@ function renderCard(entries: readonly TraceEntry[]): void {
 
 function renderTrace(utterance: string, response: TurnResponse): void {
     const turn = node("li", undefined, "turn");
-    turn.append(node("div", `"${utterance}"`, "said"));
+    turn.append(node("div", `"${utterance}"`, "said-line"));
     const steps = response.steps ?? [];
     const models = [...new Set(steps.map((step) => step.model.replace(/^@cf\/[^/]+\//, "")))].join(", ");
     const stepTimes = steps.map((step) => `${step.ms}`).join(" + ");
@@ -247,8 +269,8 @@ async function sendTurn(utterance: string): Promise<void> {
         return;
     }
     busy = true;
-    setLight("thinking");
-    speechText.textContent = "...";
+    setState("thinking");
+    show(utterance, "...");
     try {
         const response = await fetch("/api/turn", {
             method: "POST",
@@ -262,15 +284,15 @@ async function sendTurn(utterance: string): Promise<void> {
         if (result.linked === false) {
             void refreshAccount();
         }
-        speechText.textContent = result.speech;
+        show(utterance, result.speech);
         renderCard(result.trace ?? []);
         renderTrace(utterance, result);
         await speak(result.speech);
     } catch {
-        speechText.textContent = "Sorry, I'm having trouble right now. Please try again in a moment.";
+        show(utterance, "Sorry, I'm having trouble right now. Please try again in a moment.");
     } finally {
         busy = false;
-        setLight("idle");
+        setState("idle");
     }
 }
 
@@ -287,7 +309,9 @@ let recognition: Recognition | undefined;
 
 function listen(): void {
     if (RecognitionClass === undefined) {
-        hint.textContent = "This browser has no speech recognition. Type instead, or use Chrome or Edge.";
+        hint.textContent =
+            "This browser can't listen. Type instead with the button next to the microphone, or use Chrome or Edge.";
+        openTyping();
         return;
     }
     if (recognition !== undefined) {
@@ -307,24 +331,24 @@ function listen(): void {
             .filter((result) => result.isFinal)
             .map((result) => result[0]?.transcript ?? "")
             .join(" ");
-        speechText.textContent = parts.map((result) => result[0]?.transcript ?? "").join(" ");
+        show(parts.map((result) => result[0]?.transcript ?? "").join(" "), "...");
     };
     current.onerror = (event) => {
         hint.textContent =
             event.error === "not-allowed"
                 ? "The microphone is blocked. Allow it in the address bar, or type instead."
-                : "I didn't catch that. Try again, or type instead.";
+                : "I didn't catch that. Tap the microphone and try again.";
     };
     current.onend = () => {
         recognition = undefined;
         mic.setAttribute("aria-pressed", "false");
-        setLight("idle");
+        setState("idle");
         if (finalText.trim().length > 0) {
             void sendTurn(finalText.trim());
         }
     };
     mic.setAttribute("aria-pressed", "true");
-    setLight("listening");
+    setState("listening");
     current.start();
 }
 
@@ -347,11 +371,29 @@ async function refreshAccount(): Promise<void> {
 
 /* ---------- Wiring ---------- */
 
-function tickClock(): void {
-    element<HTMLSpanElement>("clock").textContent = new Date().toLocaleTimeString([], {
-        hour: "numeric",
-        minute: "2-digit",
-    });
+const typeToggle = element<HTMLButtonElement>("type-toggle");
+const scenes = element<HTMLElement>("scenes");
+const scenesToggle = element<HTMLButtonElement>("scenes-toggle");
+
+/** Typing is there for accessibility and for browsers that cannot listen; voice comes first. */
+function openTyping(): void {
+    textForm.hidden = false;
+    typeToggle.setAttribute("aria-expanded", "true");
+    textInput.focus();
+}
+
+function toggleTyping(): void {
+    if (textForm.hidden) {
+        openTyping();
+    } else {
+        textForm.hidden = true;
+        typeToggle.setAttribute("aria-expanded", "false");
+    }
+}
+
+function setScenes(open: boolean): void {
+    scenes.hidden = !open;
+    scenesToggle.setAttribute("aria-expanded", String(open));
 }
 
 mic.addEventListener("click", listen);
@@ -361,22 +403,27 @@ textForm.addEventListener("submit", (event) => {
     textInput.value = "";
     void sendTurn(text);
 });
-for (const button of document.querySelectorAll<HTMLButtonElement>("[data-say]")) {
-    button.addEventListener("click", () => void sendTurn(button.dataset["say"] ?? ""));
-}
+typeToggle.addEventListener("click", toggleTyping);
+scenesToggle.addEventListener("click", () => setScenes(scenesToggle.getAttribute("aria-expanded") !== "true"));
+element<HTMLButtonElement>("scenes-close").addEventListener("click", () => setScenes(false));
+document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+        setScenes(false);
+    }
+});
 element<HTMLButtonElement>("reset").addEventListener("click", () => {
     conversation = [];
     trace.replaceChildren();
     card.hidden = true;
-    speechText.textContent = "New conversation. What can I help you with?";
+    said.hidden = true;
+    speechText.hidden = true;
+    greeting.hidden = false;
 });
 
-tickClock();
-setInterval(tickClock, 30_000);
 void refreshAccount();
 
 // Back from a sign-in that did not work: say so once, then tidy the address.
 if (new URLSearchParams(location.search).get("link") === "failed") {
-    speechText.textContent = "Linking your account didn't work. Please try again with the Link account button.";
+    show(undefined, "Linking your account didn't work. Please try again with the Link account button.");
     history.replaceState(null, "", location.pathname);
 }

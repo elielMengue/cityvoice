@@ -1,35 +1,17 @@
 :root {
-    --bg: #f4f6f8;
+    --page: #f6f6f7;
     --surface: #ffffff;
-    --text: #1b2330;
-    --muted: #5b6470;
-    --line: #d9dee5;
-    --accent: #0b6bcb;
-    --on-accent: #ffffff;
+    --text: #333333;
+    --muted: #6b7280;
+    --line: #e3e6ea;
+    --accent: #0a73c9;
+    --accent-soft: #e6f2fc;
+    --glow: #7cc4f8;
     --error: #b3261e;
     --ok: #1e7a45;
-    --device: #1d2127;
-    --screen: #0e1116;
-    --screen-text: #f2f5f8;
-    --screen-muted: #9aa5b3;
-    --alexa: #1fb6ff;
+    --radius-pill: 999px;
+    --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", sans-serif;
     color-scheme: light;
-}
-
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-        --bg: #111418;
-        --surface: #1a1f25;
-        --text: #e8ecf1;
-        --muted: #a3acb8;
-        --line: #2f3640;
-        --accent: #6cb4ff;
-        --on-accent: #0b1a2b;
-        --error: #ff8a80;
-        --ok: #7fd4a0;
-        --device: #2a2f36;
-        color-scheme: dark;
-    }
 }
 
 * {
@@ -43,153 +25,189 @@
 
 body {
     margin: 0;
-    background: var(--bg);
+    min-height: 100vh;
+    font: 16px/1.5 var(--font);
     color: var(--text);
-    font:
-        16px/1.5 system-ui,
-        -apple-system,
-        "Segoe UI",
-        sans-serif;
+    background:
+        radial-gradient(55% 40% at 58% 8%, rgb(124 196 248 / 45%), transparent 70%),
+        radial-gradient(35% 30% at 22% 12%, rgb(150 225 240 / 35%), transparent 70%), var(--page);
+    background-attachment: fixed;
 }
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+/* ---------- Top bar ---------- */
 
 .topbar {
     display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem clamp(1rem, 4vw, 2.5rem);
-    border-bottom: 1px solid var(--line);
-    background: var(--surface);
+    gap: 1rem;
+    padding: 1.25rem clamp(1rem, 3vw, 2.5rem);
 }
 
-h1 {
-    margin: 0;
-    font-size: 1.4rem;
+.wordmark {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--accent);
+    font-size: 1.35rem;
+    font-weight: 600;
+    text-decoration: none;
 }
 
-h2 {
-    margin: 0 0 0.25rem;
-    font-size: 1.1rem;
+.wordmark-mark {
+    width: 26px;
+    height: 26px;
+    fill: currentColor;
 }
 
-.subtitle,
-.muted,
-.hint {
-    margin: 0;
-    color: var(--muted);
-    font-size: 0.9rem;
+.wordmark-tag {
+    padding: 0.1rem 0.6rem;
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 500;
 }
 
 .account {
     display: flex;
-    gap: 0.5rem;
     align-items: center;
+    gap: 0.75rem;
 }
 
 .account form {
     margin: 0;
 }
 
-.pill {
-    padding: 0.25rem 0.75rem;
-    border-radius: 999px;
-    border: 1px solid var(--line);
-    font-size: 0.85rem;
+.account-status {
+    color: var(--muted);
+    font-size: 0.9rem;
 }
 
-.pill[data-linked="true"] {
-    border-color: var(--ok);
+.account-status[data-linked="true"] {
     color: var(--ok);
 }
 
-.button {
+.pill-button {
     display: inline-block;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
+    padding: 0.5rem 1.1rem;
     border: 1px solid var(--line);
+    border-radius: var(--radius-pill);
     background: var(--surface);
     color: var(--text);
-    font: inherit;
+    font: 500 0.95rem var(--font);
     text-decoration: none;
     cursor: pointer;
 }
 
-.button.primary {
-    background: var(--accent);
+.pill-button.primary {
     border-color: var(--accent);
-    color: var(--on-accent);
+    background: var(--accent);
+    color: #ffffff;
 }
 
-.layout {
+/* ---------- Side rail ---------- */
+
+.rail {
+    position: fixed;
+    top: 50%;
+    left: clamp(0.75rem, 2vw, 2.5rem);
+    transform: translateY(-50%);
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 24rem);
-    gap: 1.5rem;
-    padding: 1.5rem clamp(1rem, 4vw, 2.5rem);
-    max-width: 80rem;
-    margin: 0 auto;
+    gap: 0.5rem;
+    padding: 0.75rem 0.5rem;
+    border-radius: 32px;
+    background: var(--surface);
+    box-shadow: 0 6px 24px rgb(20 40 80 / 8%);
 }
 
-@media (max-width: 900px) {
-    .layout {
-        grid-template-columns: minmax(0, 1fr);
-    }
+.rail-button {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: #4b5563;
+    cursor: pointer;
 }
 
-/* The device: an Echo Show style frame, always dark like the real screen. */
-.device {
-    background: var(--device);
-    border-radius: 28px;
-    padding: 14px;
-    box-shadow: 0 12px 40px rgb(0 0 0 / 25%);
+.rail-button:hover,
+.rail-button[aria-expanded="true"] {
+    background: var(--accent-soft);
+    color: var(--accent);
 }
 
-.screen {
-    position: relative;
-    aspect-ratio: 16 / 10;
-    border-radius: 16px;
-    background: var(--screen);
-    color: var(--screen-text);
-    padding: clamp(1rem, 3vw, 2rem);
+.rail-button svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+}
+
+/* ---------- The stage ---------- */
+
+.stage {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    overflow: hidden;
+    align-items: center;
+    gap: 1.5rem;
+    max-width: 46rem;
+    margin: 0 auto;
+    padding: clamp(2rem, 12vh, 7rem) 1rem 3rem;
+    text-align: center;
 }
 
-.screen-top {
-    display: flex;
-    justify-content: space-between;
-    color: var(--screen-muted);
-    font-size: 0.95rem;
-}
-
-.brand {
-    color: var(--alexa);
-    font-weight: 600;
-}
-
-/* Readable at arm's length: at least 24px, as the Echo Show guidance asks. */
-.speech {
+.greeting {
     margin: 0;
-    font-size: clamp(1.5rem, 2.6vw, 2.1rem);
-    line-height: 1.3;
+    font-size: 32px;
+    font-weight: 400;
+    line-height: 40px;
+    color: var(--text);
 }
 
+.exchange {
+    display: grid;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.said {
+    margin: 0;
+    color: var(--muted);
+    font-size: 1.05rem;
+}
+
+.answer {
+    margin: 0;
+    font-size: clamp(1.4rem, 2.6vw, 1.9rem);
+    line-height: 1.35;
+}
+
+/* Cards show what Alexa just said, never more. */
 .card {
-    background: rgb(255 255 255 / 7%);
-    border-radius: 12px;
-    padding: 0.75rem 1rem;
-    font-size: 1.5rem;
-    overflow: auto;
+    padding: 1rem 1.25rem;
+    border-radius: 20px;
+    background: var(--surface);
+    box-shadow: 0 6px 24px rgb(20 40 80 / 8%);
+    text-align: left;
 }
 
 .card ul {
-    list-style: none;
+    display: grid;
+    gap: 0.75rem;
     margin: 0;
     padding: 0;
-    display: grid;
-    gap: 0.6rem;
+    list-style: none;
 }
 
 .card li {
@@ -199,177 +217,263 @@ h2 {
 }
 
 .card .detail {
-    color: var(--screen-muted);
-    font-size: 1.1rem;
+    color: var(--muted);
+    font-size: 0.95rem;
 }
 
 .card .big {
     font-size: 2.4rem;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: 0.08em;
 }
 
 .status {
     flex: none;
     padding: 0.1rem 0.6rem;
-    border-radius: 999px;
-    font-size: 1rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.85rem;
     font-weight: 600;
 }
 
 .status[data-status="open"] {
-    background: #1f4f8a;
+    background: #e6f0fb;
+    color: #1f4f8a;
 }
 
 .status[data-status="progress"] {
-    background: #8a5a1f;
+    background: #fdf1e3;
+    color: #8a5a1f;
 }
 
 .status[data-status="closed"] {
-    background: #1f6a44;
+    background: #e5f4ea;
+    color: #1f6a44;
 }
 
-.light-bar {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 6px;
-    background: transparent;
-}
+/* ---------- The microphone ---------- */
 
-.light-bar[data-state="listening"] {
-    background: var(--alexa);
-}
-
-.light-bar[data-state="thinking"] {
-    background: linear-gradient(90deg, transparent, var(--alexa), transparent);
-    background-size: 200% 100%;
-    animation: sweep 1.2s linear infinite;
-}
-
-.light-bar[data-state="speaking"] {
-    background: var(--alexa);
-    animation: pulse 1.4s ease-in-out infinite;
-}
-
-@keyframes sweep {
-    from {
-        background-position: 200% 0;
-    }
-    to {
-        background-position: -200% 0;
-    }
-}
-
-@keyframes pulse {
-    50% {
-        opacity: 0.4;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .light-bar {
-        animation: none !important;
-    }
-}
-
-.controls {
+.voice {
+    position: relative;
     display: flex;
-    gap: 0.75rem;
     align-items: center;
-    margin-top: 1rem;
+    gap: 1rem;
 }
 
 .mic {
-    flex: none;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 88px;
+    height: 88px;
     border: none;
-    background: var(--accent);
-    color: var(--on-accent);
+    border-radius: 50%;
+    background: linear-gradient(145deg, #1f9bf0, #0a5fb5);
+    color: #ffffff;
+    box-shadow: 0 10px 30px rgb(10 115 201 / 35%);
     cursor: pointer;
 }
 
 .mic svg {
-    width: 26px;
-    height: 26px;
+    width: 36px;
+    height: 36px;
     fill: currentColor;
 }
 
-.mic[aria-pressed="true"] {
-    background: var(--alexa);
+/* The ring around the microphone says what Alexa is doing. */
+.mic::after {
+    content: "";
+    position: absolute;
+    inset: -10px;
+    border-radius: 50%;
+    border: 3px solid transparent;
 }
 
-.text-form {
-    flex: 1;
-    display: flex;
-    gap: 0.5rem;
-    min-width: 0;
+.voice[data-state="listening"] .mic::after {
+    border-color: var(--glow);
+    animation: pulse 1.2s ease-in-out infinite;
 }
 
-.text-form input {
-    flex: 1;
-    min-width: 0;
-    padding: 0.6rem 0.8rem;
-    border-radius: 8px;
+.voice[data-state="thinking"] .mic::after {
+    border-color: var(--glow) transparent var(--glow) transparent;
+    animation: spin 1s linear infinite;
+}
+
+.voice[data-state="speaking"] .mic::after {
+    border-color: var(--glow);
+    animation: breathe 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    50% {
+        transform: scale(1.12);
+        opacity: 0.4;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes breathe {
+    50% {
+        transform: scale(1.05);
+        opacity: 0.6;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mic::after {
+        animation: none !important;
+    }
+}
+
+.type-toggle {
+    position: absolute;
+    left: calc(100% + 0.75rem);
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
     border: 1px solid var(--line);
+    border-radius: 50%;
     background: var(--surface);
-    color: var(--text);
-    font: inherit;
-}
-
-.hint {
-    margin-top: 0.5rem;
-}
-
-.suggestions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 1rem;
-}
-
-.suggestions button {
-    padding: 0.4rem 0.8rem;
-    border-radius: 999px;
-    border: 1px solid var(--line);
-    background: var(--surface);
-    color: var(--text);
-    font: inherit;
-    font-size: 0.9rem;
+    color: #4b5563;
     cursor: pointer;
 }
 
-.suggestions .quiet {
+.type-toggle[aria-expanded="true"] {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.type-toggle svg {
+    width: 22px;
+    height: 22px;
+    fill: currentColor;
+}
+
+.hint {
+    margin: -0.5rem 0 0;
+    color: var(--muted);
+    font-size: 0.95rem;
+}
+
+/* ---------- Typing, for accessibility ---------- */
+
+.ask {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: min(100%, 40rem);
+    padding: 0.5rem 0.5rem 0.5rem 1.5rem;
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    box-shadow:
+        0 0 0 1px rgb(124 196 248 / 60%),
+        0 8px 30px rgb(10 115 201 / 18%);
+}
+
+.ask input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.75rem 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text);
+    font: 1.1rem var(--font);
+}
+
+.ask-send {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent);
+    cursor: pointer;
+}
+
+.ask-send svg {
+    width: 22px;
+    height: 22px;
+    fill: currentColor;
+}
+
+/* ---------- Examples ---------- */
+
+.examples {
     color: var(--muted);
 }
 
-.panel {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 1rem;
-    align-self: start;
-    max-height: calc(100vh - 8rem);
+.examples-title {
+    margin: 0 0 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.examples ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.examples li {
+    padding: 0.15rem 0;
+}
+
+/* ---------- Behind the scenes ---------- */
+
+.scenes {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(26rem, 100%);
+    padding: 1.25rem;
     overflow: auto;
+    background: var(--surface);
+    box-shadow: -8px 0 30px rgb(20 40 80 / 12%);
+    text-align: left;
+}
+
+.scenes-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.scenes h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.muted {
+    color: var(--muted);
+    font-size: 0.9rem;
 }
 
 .trace {
-    list-style: none;
-    margin: 1rem 0 0;
-    padding: 0;
     display: grid;
     gap: 0.75rem;
+    margin: 1rem 0 0;
+    padding: 0;
+    list-style: none;
 }
 
 .turn {
-    border-top: 1px solid var(--line);
     padding-top: 0.75rem;
+    border-top: 1px solid var(--line);
 }
 
-.turn .said {
+.turn .said-line {
     font-weight: 600;
 }
 
@@ -396,4 +500,33 @@ h2 {
 
 .call[data-error="true"] .name {
     color: var(--error);
+}
+
+/* ---------- Small screens ---------- */
+
+@media (max-width: 1100px) {
+    .rail {
+        top: auto;
+        bottom: 1rem;
+        left: 50%;
+        transform: translateX(-50%);
+        grid-auto-flow: column;
+        padding: 0.4rem 0.75rem;
+    }
+
+    .stage {
+        padding-bottom: 6rem;
+    }
+}
+
+@media (max-width: 720px) {
+    .wordmark-tag,
+    .account-status {
+        display: none;
+    }
+
+    .greeting {
+        font-size: 26px;
+        line-height: 32px;
+    }
 }

@@ -55,7 +55,8 @@ const hint = element<HTMLParagraphElement>("hint");
 const textForm = element<HTMLFormElement>("text-form");
 const textInput = element<HTMLInputElement>("text-input");
 
-let history: unknown[] = [];
+// The conversation so far, sent with every turn: the server keeps none.
+let conversation: unknown[] = [];
 let busy = false;
 
 function setLight(state: "idle" | "listening" | "thinking" | "speaking"): void {
@@ -252,11 +253,11 @@ async function sendTurn(utterance: string): Promise<void> {
         const response = await fetch("/api/turn", {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ utterance, history }),
+            body: JSON.stringify({ utterance, history: conversation }),
         });
         const result = (await response.json()) as TurnResponse;
         if (result.history !== undefined) {
-            history = result.history;
+            conversation = result.history;
         }
         if (result.linked === false) {
             void refreshAccount();
@@ -364,7 +365,7 @@ for (const button of document.querySelectorAll<HTMLButtonElement>("[data-say]"))
     button.addEventListener("click", () => void sendTurn(button.dataset["say"] ?? ""));
 }
 element<HTMLButtonElement>("reset").addEventListener("click", () => {
-    history = [];
+    conversation = [];
     trace.replaceChildren();
     card.hidden = true;
     speechText.textContent = "New conversation. What can I help you with?";
@@ -373,3 +374,9 @@ element<HTMLButtonElement>("reset").addEventListener("click", () => {
 tickClock();
 setInterval(tickClock, 30_000);
 void refreshAccount();
+
+// Back from a sign-in that did not work: say so once, then tidy the address.
+if (new URLSearchParams(location.search).get("link") === "failed") {
+    speechText.textContent = "Linking your account didn't work. Please try again with the Link account button.";
+    history.replaceState(null, "", location.pathname);
+}

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import type { FetchLike } from "./boundFetch";
+import { boundFetch } from "./boundFetch";
 import { clearCookie, LOGIN_COOKIE, readCookie, SESSION_COOKIE, setCookie } from "./cookies";
 import { Gemini, ModelUnavailableError } from "./gemini";
 import { McpHttpClient, UnauthorizedError } from "./mcpClient";
@@ -27,6 +29,18 @@ interface Env {
     readonly ALLOW_MODEL_OVERRIDE?: string;
     readonly TURN_LIMITER?: RateLimiter;
     readonly LOGIN_LIMITER?: RateLimiter;
+    /** Service binding to the CityVoice Worker. Absent locally, where plain fetch reaches localhost. */
+    readonly CITYVOICE?: { fetch(request: Request): Promise<Response> };
+}
+
+/**
+ * How the simulator reaches CityVoice. Cloudflare refuses a plain fetch from
+ * one Worker to another on the same workers.dev subdomain (error 1042), so
+ * online the call goes through the service binding instead.
+ */
+function cityvoiceFetch(env: Env): FetchLike {
+    const service = env.CITYVOICE;
+    return service === undefined ? boundFetch : (input, init) => service.fetch(new Request(input, init));
 }
 
 const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
@@ -127,7 +141,7 @@ async function handleTurn(request: Request, env: Env): Promise<Response> {
         if (current.refreshToken === undefined) {
             return undefined;
         }
-        const renewed = await refresh(config, current.refreshToken).catch(() => undefined);
+        const renewed = await refresh(config, current.refreshToken, cityvoiceFetch(env)).catch(() => undefined);
         if (renewed !== undefined) {
             cookies.push(setCookie(SESSION_COOKIE, JSON.stringify(renewed), SESSION_MAX_AGE_SECONDS));
         }
@@ -157,7 +171,12 @@ async function handleTurn(request: Request, env: Env): Promise<Response> {
     );
     const play = (accessToken: string) =>
         runTurn(
-            { model, tools: withCachedToolList(new McpHttpClient(`${config.serverUrl}/mcp`, accessToken)) },
+            {
+                model,
+                tools: withCachedToolList(
+                    new McpHttpClient(`${config.serverUrl}/mcp`, accessToken, cityvoiceFetch(env)),
+                ),
+            },
             parsed.data.history as Content[],
             parsed.data.utterance,
         );
@@ -204,11 +223,17 @@ async function route(request: Request, env: Env): Promise<Response> {
             // Denied, expired, or not started here: go back without linking.
             return redirect("/", [clearCookie(LOGIN_COOKIE)]);
         }
-        const tokens = await exchangeCode(config, code, pending);
-        return redirect("/", [
-            clearCookie(LOGIN_COOKIE),
-            setCookie(SESSION_COOKIE, JSON.stringify(tokens), SESSION_MAX_AGE_SECONDS),
-        ]);
+        try {
+            const tokens = await exchangeCode(config, code, pending, cityvoiceFetch(env));
+            return redirect("/", [
+                clearCookie(LOGIN_COOKIE),
+                setCookie(SESSION_COOKIE, JSON.stringify(tokens), SESSION_MAX_AGE_SECONDS),
+            ]);
+        } catch (error) {
+            // The page says linking failed; the reason is for the logs, not the visitor.
+            console.error(JSON.stringify({ message: "code exchange failed", error: String(error) }));
+            return redirect("/?link=failed", [clearCookie(LOGIN_COOKIE)]);
+        }
     }
     if (url.pathname === "/logout" && request.method === "POST") {
         return redirect("/", [clearCookie(SESSION_COOKIE)]);

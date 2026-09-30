@@ -247,3 +247,16 @@ Time lost is our own rough estimate.
 - **Workaround:** we keep it to slow floods down, and added an exact daily
   budget counted in D1 for the requests that write to KV.
 - **Time lost:** 40 minutes.
+
+### One Worker cannot fetch another on the same workers.dev subdomain
+
+- **Product:** Cloudflare Workers
+- **Happened:** once deployed, linking the simulator crashed with error 1101.
+  The logs showed why: the token request from the simulator Worker to the
+  CityVoice Worker came back as "error code: 1042", plain text, which the
+  simulator then failed to read as JSON. Locally both ran on localhost, so
+  nothing showed it before deploying.
+- **Workaround:** a service binding from the simulator to CityVoice, which is
+  the supported way, and a callback that reports a failed link on the page
+  instead of crashing.
+- **Time lost:** 30 minutes.

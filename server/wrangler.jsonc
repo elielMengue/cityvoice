@@ -17,6 +17,8 @@
             "migrations_dir": "migrations",
         },
     ],
+    // OAuth clients, grants and tokens (stored hashed by the library).
+    "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "d28d8f73a8be480d9f1c75589a04fb38" }],
     // Local development: the demo authenticator is allowed here only.
     "vars": {
         "NODE_ENV": "development",
@@ -27,6 +29,7 @@
         "production": {
             // Keep the plain name so the address stays cityvoice.<account>.workers.dev.
             "name": "cityvoice",
+            "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "d28d8f73a8be480d9f1c75589a04fb38" }],
             "d1_databases": [
                 {
                     "binding": "DB",
@@ -37,9 +40,8 @@
             ],
             "vars": {
                 "NODE_ENV": "production",
-                // The server refuses to start in demo mode with these, which is
-                // intended until account linking exists.
-                "AUTH_MODE": "demo",
+                "AUTH_MODE": "oauth",
+                "PUBLIC_URL": "https://cityvoice.demop.workers.dev",
                 "LOG_LEVEL": "info",
             },
         },

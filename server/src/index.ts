@@ -8,6 +8,10 @@ import { warmUp } from "./warmUp";
 
 const config = loadConfig();
 const logger = createLogger(config.logLevel);
+if (config.authMode !== "demo") {
+    // Account linking lives in the Worker (src/worker.ts); run it with `bun run worker:dev`.
+    throw new Error("The Bun server only supports AUTH_MODE=demo. Use the Worker for OAuth.");
+}
 
 const tools = createDemoDeps();
 const authenticate = createDemoAuthenticator(

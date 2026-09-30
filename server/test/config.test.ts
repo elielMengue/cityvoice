@@ -10,6 +10,7 @@ describe("loadConfig", () => {
             logLevel: "info",
             authMode: "demo",
             demoResident: undefined,
+            publicUrl: undefined,
         });
     });
 
@@ -27,6 +28,20 @@ describe("loadConfig", () => {
 
     test("refuses to run the demo authenticator in production", () => {
         expect(() => loadConfig({ NODE_ENV: "production" })).toThrow(/must not run/);
+    });
+
+    test("OAuth needs the public address tokens are issued for", () => {
+        expect(() => loadConfig({ AUTH_MODE: "oauth" })).toThrow(/PUBLIC_URL/);
+        expect(loadConfig({ AUTH_MODE: "oauth", PUBLIC_URL: "https://cityvoice.example.com/" }).publicUrl).toBe(
+            "https://cityvoice.example.com",
+        );
+    });
+
+    test("OAuth is allowed in production", () => {
+        expect(
+            loadConfig({ AUTH_MODE: "oauth", PUBLIC_URL: "https://cityvoice.example.com", NODE_ENV: "production" })
+                .authMode,
+        ).toBe("oauth");
     });
 
     test("rejects an auth mode that does not exist", () => {

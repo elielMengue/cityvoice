@@ -4,6 +4,7 @@
     "private": true,
     "type": "module",
     "dependencies": {
+        "@cloudflare/workers-oauth-provider": "1.2.0",
         "@modelcontextprotocol/server": "2.1.0",
         "zod": "4"
     },
@@ -21,6 +22,8 @@
         "typecheck": "tsc --noEmit",
         "worker:dev": "wrangler dev --port 8790",
         "db:migrate:local": "wrangler d1 migrations apply cityvoice --local",
-        "db:seed:local": "bun scripts/seedSql.ts > .wrangler/seed.sql && wrangler d1 execute cityvoice --local --file .wrangler/seed.sql"
+        "db:seed:local": "bun scripts/seedSql.ts > .wrangler/seed.sql && wrangler d1 execute cityvoice --local --file .wrangler/seed.sql",
+        "worker:dev:oauth": "wrangler dev --port 8790 --var AUTH_MODE:oauth --var PUBLIC_URL:http://localhost:8790",
+        "smoke:oauth": "bun scripts/oauthSmoke.ts"
     }
 }

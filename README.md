@@ -23,19 +23,25 @@ connector for real Open311 cities come next.
 
 ## Tools
 
-| Tool                  | What it does                                                                |
-| --------------------- | --------------------------------------------------------------------------- |
-| `resolve_location`    | Turns "14th and U" or "in front of my house" into a confirmed place         |
-| `list_service_types`  | Finds the city service for the problem, and stops at emergencies (call 911) |
-| `find_nearby_reports` | Checks whether neighbors already reported the same thing close by           |
-| `draft_report`        | Builds the report over several turns and asks what the city still needs     |
-| `submit_report`       | Sends the draft after an explicit yes; safe to retry                        |
-| `support_report`      | Adds the resident's support to a neighbor's report, once per person         |
-| `get_my_reports`      | Tells the resident where their reports stand, three at a time               |
-| `ping`                | Checks that the service is up                                               |
+| Tool                  | What it does                                                                              |
+| --------------------- | ----------------------------------------------------------------------------------------- |
+| `start_report`        | The first answer in one call: emergency screen, service, place, neighbors' reports, draft |
+| `resolve_location`    | Turns "14th and U" or "in front of my house" into a confirmed place                       |
+| `list_service_types`  | Finds the city service for the problem, and stops at emergencies (call 911)               |
+| `find_nearby_reports` | Checks whether neighbors already reported the same thing close by                         |
+| `draft_report`        | Builds the report over several turns and asks what the city still needs                   |
+| `submit_report`       | Sends the draft after an explicit yes; safe to retry                                      |
+| `support_report`      | Adds the resident's support to a neighbor's report, once per person                       |
+| `get_my_reports`      | Tells the resident where their reports stand, three at a time                             |
+| `ping`                | Checks that the service is up                                                             |
 
 Every tool returns `speech`, a sentence Alexa can say as it is, and `data`,
 the structured result behind it.
+
+`start_report` exists for speed. Each tool call costs the assistant a round of
+thinking, and a report used to need four of them before the first question.
+Now it needs one. The single-step tools stay for corrections, like "no, it's
+on 15th Street".
 
 ## Demo data
 

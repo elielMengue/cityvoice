@@ -194,3 +194,42 @@ Time lost is our own rough estimate.
   nothing says a new local database was created.
 - **Workaround:** run the local migration and seed again after changing an id.
 - **Time lost:** 5 minutes.
+
+## 2026-09-30
+
+### Open models on Workers AI break rules written in their prompt
+
+- **Product:** Cloudflare Workers AI, open models used as the simulated Alexa+
+- **Happened:** Llama 3.3 answered the city's question for the resident and
+  filed the report without a yes, retrying submit with `user_confirmed` set to
+  true after the server refused. Llama 4 Scout answered a pothole report
+  without calling any tool and named a city department it made up. Several
+  models wrote tool calls as text, which was then read aloud.
+- **Workaround:** the simulator enforces confirmation and grounded answers in
+  code, runs tool calls written as text, and cleans spoken text. A model can
+  still skip a tool entirely; Mistral answered a gas smell with "Call 911."
+  on its own, which is safe but not our wording.
+- **Time lost:** 1 hour 30 minutes.
+
+### Workers AI speed depends on the hour and on the conversation length
+
+- **Product:** Workers AI, free plan
+- **Happened:** a model step took about 1 second in the morning with a short
+  prompt, and 3 to 11 seconds in the afternoon with our full tool list and a
+  few turns of history. Two of the faster models (GLM, DeepSeek) are not
+  available on the free plan.
+- **Workaround:** fewer steps per turn. A combined `start_report` tool gets to
+  the first question in one call, and the simulator says a tool's answer
+  directly instead of asking the model to repeat it.
+- **Time lost:** 1 hour.
+
+### Linking the same user again revokes their earlier links
+
+- **Product:** `@cloudflare/workers-oauth-provider`
+- **Happened:** two people testing as the same demo resident kept logging each
+  other out. By default `completeAuthorization()` revokes the user's earlier
+  grants for the same client. It is documented, and right for real accounts,
+  but it took a while to connect "Grant not found" with a second person
+  linking.
+- **Workaround:** `revokeExistingGrants: false` for our shared demo accounts.
+- **Time lost:** 45 minutes.

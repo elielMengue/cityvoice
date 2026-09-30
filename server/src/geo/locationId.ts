@@ -1,3 +1,5 @@
+import { Buffer } from "node:buffer";
+
 import { z } from "zod";
 
 import type { GeoPoint } from "./geo";

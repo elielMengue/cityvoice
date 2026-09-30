@@ -1,0 +1,47 @@
+{
+    "$schema": "../node_modules/wrangler/config-schema.json",
+    "name": "cityvoice",
+    "main": "src/worker.ts",
+    "compatibility_date": "2026-09-28",
+    "compatibility_flags": ["nodejs_compat"],
+    // Run next to the database rather than next to the caller: each tool call
+    // makes several D1 queries, so this is what keeps us under 500 ms.
+    "placement": { "mode": "smart" },
+    "observability": { "enabled": true },
+    "d1_databases": [
+        {
+            "binding": "DB",
+            "database_name": "cityvoice",
+            // Local development uses its own SQLite file, never this database.
+            "database_id": "9be5f911-cf06-4ed3-9134-e95d5df70b9b",
+            "migrations_dir": "migrations",
+        },
+    ],
+    // Local development: the demo authenticator is allowed here only.
+    "vars": {
+        "NODE_ENV": "development",
+        "AUTH_MODE": "demo",
+        "LOG_LEVEL": "info",
+    },
+    "env": {
+        "production": {
+            // Keep the plain name so the address stays cityvoice.<account>.workers.dev.
+            "name": "cityvoice",
+            "d1_databases": [
+                {
+                    "binding": "DB",
+                    "database_name": "cityvoice",
+                    "database_id": "9be5f911-cf06-4ed3-9134-e95d5df70b9b",
+                    "migrations_dir": "migrations",
+                },
+            ],
+            "vars": {
+                "NODE_ENV": "production",
+                // The server refuses to start in demo mode with these, which is
+                // intended until account linking exists.
+                "AUTH_MODE": "demo",
+                "LOG_LEVEL": "info",
+            },
+        },
+    },
+}

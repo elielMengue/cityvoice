@@ -11,12 +11,16 @@
         "@modelcontextprotocol/client": "2.1.0",
         "@types/bun": "^1.4.2",
         "@types/node": "^26.6.3",
-        "typescript": "^6"
+        "typescript": "^6",
+        "wrangler": "4.143.0"
     },
     "scripts": {
         "dev": "bun --watch src/index.ts",
         "start": "bun src/index.ts",
         "test": "bun test",
-        "typecheck": "tsc --noEmit"
+        "typecheck": "tsc --noEmit",
+        "worker:dev": "wrangler dev --port 8790",
+        "db:migrate:local": "wrangler d1 migrations apply cityvoice --local",
+        "db:seed:local": "bun scripts/seedSql.ts > .wrangler/seed.sql && wrangler d1 execute cityvoice --local --file .wrangler/seed.sql"
     }
 }

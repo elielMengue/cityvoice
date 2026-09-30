@@ -45,6 +45,8 @@ export function createFetchHandler({
             );
         }
 
+        // On Cloudflare Workers the clock is frozen during a request, so
+        // latencyMs reads 0 there; use the platform's wallTime instead.
         logger.info("request", {
             method: request.method,
             path: pathname,

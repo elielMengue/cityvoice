@@ -13,6 +13,7 @@ const PING_SPEECH = "CityVoice is up and ready to take your report.";
 const EXPECTED_TOOLS = [
     "draft_report",
     "find_nearby_reports",
+    "get_my_reports",
     "list_service_types",
     "ping",
     "resolve_location",

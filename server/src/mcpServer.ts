@@ -4,6 +4,7 @@ import { createMcpHandler, McpServer } from "@modelcontextprotocol/server";
 import type { Logger } from "./logger";
 import { registerDraftReportTool } from "./tools/draftReport";
 import { registerFindNearbyReportsTool } from "./tools/findNearbyReports";
+import { registerGetMyReportsTool } from "./tools/getMyReports";
 import { registerListServiceTypesTool } from "./tools/listServiceTypes";
 import { registerPingTool } from "./tools/ping";
 import { registerResolveLocationTool } from "./tools/resolveLocation";
@@ -22,7 +23,7 @@ const INSTRUCTIONS =
     "graffiti and similar) and follow them up. To report: resolve_location, then list_service_types, then " +
     "find_nearby_reports. If a neighbor already reported it, offer support_report. Otherwise draft_report, ask any " +
     "missing questions, read the readback, and call submit_report only after the user says yes. " +
-    "Each tool returns a speech field: say it as it is.";
+    "To follow up, get_my_reports. Each tool returns a speech field: say it as it is.";
 
 export type McpFetch = (request: Request, authInfo: AuthInfo | undefined) => Promise<Response>;
 
@@ -42,6 +43,7 @@ export function createMcpServer(deps: ToolDeps, caller: Caller): McpServer {
     registerDraftReportTool(server, deps, caller);
     registerSubmitReportTool(server, deps, caller);
     registerSupportReportTool(server, deps, caller);
+    registerGetMyReportsTool(server, deps, caller);
     return server;
 }
 

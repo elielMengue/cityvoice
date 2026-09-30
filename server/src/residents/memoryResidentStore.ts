@@ -61,6 +61,12 @@ export class MemoryResidentStore implements ResidentStore {
     async getReport(residentId: string, requestId: string): Promise<MyReport | undefined> {
         return this.reports.get(reportKey(residentId, requestId));
     }
+
+    async listReports(residentId: string): Promise<readonly MyReport[]> {
+        return [...this.reports.values()]
+            .filter((report) => report.residentId === residentId)
+            .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || a.requestId.localeCompare(b.requestId));
+    }
 }
 
 function reportKey(residentId: string, requestId: string): string {

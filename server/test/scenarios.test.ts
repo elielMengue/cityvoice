@@ -50,7 +50,11 @@ describe("Scenario A: Daniel reports a new pothole", () => {
         // "In the road, right lane."
         const completed = await app.callTool(
             "draft_report",
-            { draft_id: draftId, answers: { position: "in the road, right lane" }, description: "huge, right lane" },
+            {
+                draft_id: draftId,
+                answers: { position: "in the road, right lane" },
+                description: "huge, right lane",
+            },
             daniel,
         );
         expect(completed.data["ready"]).toBe(true);
@@ -249,6 +253,79 @@ describe("Scenario B: Maria supports her neighbors' streetlight report", () => {
     });
 });
 
+describe("Scenario C: Aisha asks what's happening with her reports", () => {
+    test("each report gets its status in plain words, newest news first", async () => {
+        const app = createTestApp();
+
+        // "Alexa, what's happening with my reports?"
+        const outcome = await app.callTool("get_my_reports", {}, "aisha");
+
+        expect(outcome.speech).toBe(
+            "You have three reports. " +
+                "The graffiti at 1100 11th Street Northwest was closed today. " +
+                "The pothole at 900 U Street Northwest is in progress: a crew has been assigned. " +
+                "The missed trash pickup at 612 A Street Southeast is still waiting for the city, filed 2 days ago.",
+        );
+        const reports = outcome.data["reports"] as { status: string; lat: number }[];
+        expect(reports.map((report) => report.status)).toEqual(["closed", "open", "open"]);
+        expect(outcome.data["next_cursor"]).toBeUndefined();
+    });
+
+    test("can be narrowed to open reports", async () => {
+        const app = createTestApp();
+
+        const outcome = await app.callTool("get_my_reports", { status: "open" }, "aisha");
+
+        expect(outcome.speech).toStartWith("You have two open reports.");
+    });
+
+    test("a report the resident supports is listed as supported, not filed", async () => {
+        const app = createTestApp();
+        await app.callTool("support_report", { request_id: "26-00481907" }, "maria");
+
+        const outcome = await app.callTool("get_my_reports", {}, "maria");
+
+        expect(outcome.speech).toStartWith(
+            "You have one report. The streetlight out you support at 1425 Columbia Road Northwest",
+        );
+    });
+
+    test("long lists are read three at a time", async () => {
+        const app = createTestApp();
+        for (const place of ["14th and U", "14th and T", "14th and V", "11th and T"]) {
+            const location = await app.callTool("resolve_location", { spoken_place: place }, "daniel");
+            const draft = await app.callTool(
+                "draft_report",
+                { location_id: location.data["location_id"], service_code: "SIDEWALK" },
+                "daniel",
+            );
+            await app.callTool(
+                "submit_report",
+                { draft_id: draft.data["draft_id"], user_confirmed: true },
+                "daniel",
+            );
+        }
+
+        const first = await app.callTool("get_my_reports", {}, "daniel");
+        expect(first.speech).toStartWith("You have four reports.");
+        expect(first.speech).toEndWith("There is one more. Want to hear it?");
+        expect(first.data["reports"] as unknown[]).toHaveLength(3);
+
+        const second = await app.callTool("get_my_reports", { cursor: first.data["next_cursor"] }, "daniel");
+        expect(second.data["reports"] as unknown[]).toHaveLength(1);
+        expect(second.speech).not.toContain("You have");
+        expect(second.data["next_cursor"]).toBeUndefined();
+    });
+
+    test("someone with no reports hears so", async () => {
+        const app = createTestApp();
+
+        const outcome = await app.callTool("get_my_reports", {}, "daniel");
+
+        expect(outcome.speech).toBe("You don't have any reports right now.");
+    });
+});
+
 describe("Scenario D: an emergency is never filed", () => {
     test.each([
         ["there's a gas smell in my building", "leave the building and call 911"],
@@ -334,6 +411,7 @@ describe("Voice rules", () => {
         );
         await app.callTool("list_service_types", { problem_description: "gas leak" }, "maria");
         await app.callTool("list_service_types", { problem_description: "the tree is dead" }, "maria");
+        await app.callTool("get_my_reports", {}, "aisha");
 
         expect(app.spoken.length).toBeGreaterThan(5);
         for (const speech of app.spoken) {

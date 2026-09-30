@@ -56,4 +56,6 @@ export interface ResidentStore {
     /** Returns false, and changes nothing, when the resident is already linked to the request. */
     addReport(report: MyReport): Promise<boolean>;
     getReport(residentId: string, requestId: string): Promise<MyReport | undefined>;
+    /** Every report the resident filed or supports, newest link first. Bounded per person, so not paginated. */
+    listReports(residentId: string): Promise<readonly MyReport[]>;
 }

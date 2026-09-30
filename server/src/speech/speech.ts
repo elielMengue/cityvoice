@@ -10,10 +10,14 @@ export const MAX_SPEECH_WORDS = 60;
 
 const NUMBER_WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
 
+/** "three", "ten", "12". Small numbers read better as words. */
+export function numberWord(count: number): string {
+    return NUMBER_WORDS[count] ?? String(count);
+}
+
 /** "two neighbors", "one neighbor", "12 neighbors". */
 export function countOf(count: number, singular: string, plural = `${singular}s`): string {
-    const number = NUMBER_WORDS[count] ?? String(count);
-    return `${number} ${count === 1 ? singular : plural}`;
+    return `${numberWord(count)} ${count === 1 ? singular : plural}`;
 }
 
 /** Same as countOf, but starting a sentence: "Two neighbors". */

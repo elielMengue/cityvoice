@@ -7,11 +7,14 @@ import type { Authenticator } from "./auth/authenticator";
 import { createDemoAuthenticator } from "./auth/authenticator";
 import { handleAuthorize, REPORTS_SCOPE } from "./auth/authorizeHandler";
 import type { Config } from "./config";
+import { BUDGET_NAME, budgetExhaustedResponse, OAUTH_DAILY_UNITS, takeDailyUnit, usesDailyBudget } from "./dailyBudget";
 import { loadConfig } from "./config";
 import type { SqlDatabase } from "./db/sqlDatabase";
 import { DEMO_RESIDENTS } from "./demo/dcDemo";
 import { createSqlDemoDeps } from "./demo/demoDeps";
 import { createFetchHandler, HEALTH_PATH, MCP_PATH } from "./httpServer";
+import type { RateLimiter } from "./limits";
+import { checkLimits } from "./limits";
 import { createLogger } from "./logger";
 import { SqlResidentStore } from "./residents/sqlResidentStore";
 
@@ -30,6 +33,9 @@ export interface WorkerEnv {
     readonly PUBLIC_URL?: string;
     readonly LOG_LEVEL?: string;
     readonly NODE_ENV?: string;
+    readonly ALLOW_CLIENT_REGISTRATION?: string;
+    readonly AUTH_LIMITER?: RateLimiter;
+    readonly MCP_LIMITER?: RateLimiter;
 }
 
 type FetchHandler = (request: Request) => Promise<Response>;
@@ -48,6 +54,7 @@ function readConfig(env: WorkerEnv): Config {
         PUBLIC_URL: env.PUBLIC_URL,
         LOG_LEVEL: env.LOG_LEVEL,
         NODE_ENV: env.NODE_ENV,
+        ALLOW_CLIENT_REGISTRATION: env.ALLOW_CLIENT_REGISTRATION,
     });
 }
 
@@ -130,9 +137,9 @@ function buildOAuthWorker(config: Config): WorkerFetch {
         defaultHandler: { fetch: serveOther },
         authorizeEndpoint: AUTHORIZE_PATH,
         tokenEndpoint: TOKEN_PATH,
-        // Dynamic registration lets MCP Inspector and the simulator link
-        // themselves. Alexa+ uses a client registered once, ahead of time.
-        clientRegistrationEndpoint: REGISTER_PATH,
+        // Closed unless ALLOW_CLIENT_REGISTRATION is set: the simulator and
+        // Alexa+ use clients registered once, ahead of time.
+        ...(config.allowClientRegistration ? { clientRegistrationEndpoint: REGISTER_PATH } : {}),
         scopesSupported: [REPORTS_SCOPE],
         requiredScopes: [REPORTS_SCOPE],
         resourceMetadata: {
@@ -140,7 +147,16 @@ function buildOAuthWorker(config: Config): WorkerFetch {
             authorization_servers: [publicUrl],
         },
     });
-    return (request, env, ctx) => provider.fetch(request, env, ctx);
+    return async (request, env, ctx) => {
+        const limited = await checkLimits(request, { auth: env.AUTH_LIMITER, mcp: env.MCP_LIMITER });
+        if (limited !== undefined) {
+            return limited;
+        }
+        if (usesDailyBudget(request) && !(await takeDailyUnit(env.DB, BUDGET_NAME, OAUTH_DAILY_UNITS, new Date()))) {
+            return budgetExhaustedResponse(request);
+        }
+        return provider.fetch(request, env, ctx);
+    };
 }
 
 let cached: { readonly env: WorkerEnv; readonly fetch: WorkerFetch } | undefined;

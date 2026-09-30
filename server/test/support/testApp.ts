@@ -1,5 +1,5 @@
 import { expect } from "bun:test";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { createDemoAuthenticator, DEMO_RESIDENT_HEADER } from "../../src/auth/authenticator";
@@ -67,10 +67,18 @@ export const TEST_BACKENDS: readonly TestBackend[] = ["memory", "sql"];
 
 const MIGRATIONS_DIR = join(import.meta.dir, "..", "..", "migrations");
 
+/** Every migration, in the order wrangler applies them. */
+export function readMigrations(): string[] {
+    return readdirSync(MIGRATIONS_DIR)
+        .filter((name) => name.endsWith(".sql"))
+        .sort()
+        .map((name) => readFileSync(join(MIGRATIONS_DIR, name), "utf8"));
+}
+
 /** A fresh SQLite database with the real migrations and the demo seed. */
 export function createSeededDatabase(now: Date): BunSqliteDatabase {
     const db = new BunSqliteDatabase();
-    db.migrate([readFileSync(join(MIGRATIONS_DIR, "0001_init.sql"), "utf8")]);
+    db.migrate(readMigrations());
     const statements = seedStatements(buildDemoSeed(now), FIRST_DEMO_REQUEST_NUMBER);
     // bun:sqlite runs the batch synchronously, so the seed is in place on return.
     void db.batch(statements.map(({ sql, values }) => db.prepare(sql).bind(...values)));

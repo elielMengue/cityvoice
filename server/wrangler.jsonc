@@ -19,6 +19,12 @@
     ],
     // OAuth clients, grants and tokens (stored hashed by the library).
     "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "d28d8f73a8be480d9f1c75589a04fb38" }],
+    // Per minute. Linking is two requests to /authorize, so 20 is plenty for
+    // a person; a voice turn is one to three MCP calls.
+    "ratelimits": [
+        { "name": "AUTH_LIMITER", "namespace_id": "1001", "simple": { "limit": 20, "period": 60 } },
+        { "name": "MCP_LIMITER", "namespace_id": "1002", "simple": { "limit": 120, "period": 60 } },
+    ],
     // Local development: the demo authenticator is allowed here only.
     "vars": {
         "NODE_ENV": "development",
@@ -38,11 +44,19 @@
                     "migrations_dir": "migrations",
                 },
             ],
+            "ratelimits": [
+                { "name": "AUTH_LIMITER", "namespace_id": "1001", "simple": { "limit": 20, "period": 60 } },
+                { "name": "MCP_LIMITER", "namespace_id": "1002", "simple": { "limit": 120, "period": 60 } },
+            ],
             "vars": {
                 "NODE_ENV": "production",
                 "AUTH_MODE": "oauth",
                 "PUBLIC_URL": "https://cityvoice.demop.workers.dev",
                 "LOG_LEVEL": "info",
+                // Registered clients: the simulator (BaI2IsJ-KlbWExFT) and the
+                // smoke test (k-Sulh3y7PuFJO71). To add one, deploy once with
+                // this set to "true", register, then deploy again without it.
+                "ALLOW_CLIENT_REGISTRATION": "false",
             },
         },
     },

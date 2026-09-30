@@ -5,6 +5,10 @@
  *
  *   bun scripts/oauthSmoke.ts http://localhost:8790
  *
+ * With client registration closed, as in production, pass a registered client:
+ *
+ *   SMOKE_CLIENT_ID=k-Sulh3y7PuFJO71 bun scripts/oauthSmoke.ts https://cityvoice.demop.workers.dev
+ *
  * Exits with code 1 on the first failed check.
  */
 
@@ -55,24 +59,34 @@ check(resource.resource === `${baseUrl}/mcp`, `protected resource metadata names
 const server = (await (await fetch(`${baseUrl}/.well-known/oauth-authorization-server`)).json()) as {
     authorization_endpoint: string;
     token_endpoint: string;
-    registration_endpoint: string;
+    registration_endpoint?: string;
     code_challenge_methods_supported: string[];
 };
 check(server.code_challenge_methods_supported.includes("S256"), "the authorization server supports PKCE S256");
 
-// 3. Register a client.
-const registration = (await (
-    await fetch(server.registration_endpoint, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-            client_name: "CityVoice smoke test",
-            redirect_uris: [REDIRECT_URI],
-            token_endpoint_auth_method: "none",
-        }),
-    })
-).json()) as { client_id: string };
-check(typeof registration.client_id === "string", "a public client can register");
+// 3. Use the registered smoke test client when registration is closed, as in
+// production; otherwise register one.
+async function smokeClient(): Promise<{ client_id: string }> {
+    const preset = process.env["SMOKE_CLIENT_ID"];
+    if (preset !== undefined) {
+        check(server.registration_endpoint === undefined, "client registration is closed");
+        return { client_id: preset };
+    }
+    const registered = (await (
+        await fetch(server.registration_endpoint ?? "", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+                client_name: "CityVoice smoke test",
+                redirect_uris: [REDIRECT_URI],
+                token_endpoint_auth_method: "none",
+            }),
+        })
+    ).json()) as { client_id: string };
+    check(typeof registered.client_id === "string", "a public client can register");
+    return registered;
+}
+const registration = await smokeClient();
 
 // 4. Authorize with PKCE and the resource indicator.
 const verifier = base64Url(crypto.getRandomValues(new Uint8Array(32)));

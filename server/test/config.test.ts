@@ -11,6 +11,7 @@ describe("loadConfig", () => {
             authMode: "demo",
             demoResident: undefined,
             publicUrl: undefined,
+            allowClientRegistration: false,
         });
     });
 
@@ -42,6 +43,12 @@ describe("loadConfig", () => {
             loadConfig({ AUTH_MODE: "oauth", PUBLIC_URL: "https://cityvoice.example.com", NODE_ENV: "production" })
                 .authMode,
         ).toBe("oauth");
+    });
+
+    test("keeps client registration closed unless it is opened on purpose", () => {
+        expect(loadConfig({}).allowClientRegistration).toBe(false);
+        expect(loadConfig({ ALLOW_CLIENT_REGISTRATION: "true" }).allowClientRegistration).toBe(true);
+        expect(() => loadConfig({ ALLOW_CLIENT_REGISTRATION: "yes" })).toThrow();
     });
 
     test("rejects an auth mode that does not exist", () => {

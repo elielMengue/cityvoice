@@ -23,7 +23,8 @@
         "worker:dev": "wrangler dev --port 8790",
         "db:migrate:local": "wrangler d1 migrations apply cityvoice --local",
         "db:seed:local": "bun scripts/seedSql.ts > .wrangler/seed.sql && wrangler d1 execute cityvoice --local --file .wrangler/seed.sql",
-        "worker:dev:oauth": "wrangler dev --port 8790 --var AUTH_MODE:oauth --var PUBLIC_URL:http://localhost:8790",
-        "smoke:oauth": "bun scripts/oauthSmoke.ts"
+        "worker:dev:oauth": "wrangler dev --port 8790 --var AUTH_MODE:oauth --var PUBLIC_URL:http://localhost:8790 --var ALLOW_CLIENT_REGISTRATION:true",
+        "smoke:oauth": "bun scripts/oauthSmoke.ts",
+        "smoke:oauth:prod": "SMOKE_CLIENT_ID=k-Sulh3y7PuFJO71 bun scripts/oauthSmoke.ts https://cityvoice.demop.workers.dev"
     }
 }

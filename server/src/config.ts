@@ -11,6 +11,9 @@ const configSchema = z.object({
     // The address residents and Alexa reach the service at. Tokens are issued
     // for `${PUBLIC_URL}/mcp`, so it must be exact.
     PUBLIC_URL: z.url().optional(),
+    // Dynamic client registration writes to KV on every call. It stays closed
+    // unless someone opens it on purpose to register a new client.
+    ALLOW_CLIENT_REGISTRATION: z.enum(["true", "false"]).default("false"),
     NODE_ENV: z.string().optional(),
 });
 
@@ -23,6 +26,7 @@ export interface Config {
     readonly authMode: AuthMode;
     readonly demoResident: string | undefined;
     readonly publicUrl: string | undefined;
+    readonly allowClientRegistration: boolean;
 }
 
 /**
@@ -47,5 +51,6 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
         demoResident: parsed.DEMO_RESIDENT,
         // Stored without a trailing slash so paths can be appended safely.
         publicUrl: parsed.PUBLIC_URL?.replace(/\/+$/, ""),
+        allowClientRegistration: parsed.ALLOW_CLIENT_REGISTRATION === "true",
     };
 }

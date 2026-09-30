@@ -7,16 +7,22 @@ import type { OAuthClientConfig, PendingLogin, Tokens } from "./oauthClient";
 import { exchangeCode, refresh, startLogin } from "./oauthClient";
 import type { Content, ToolDeclaration, ToolResult, ToolServer } from "./orchestrator";
 import { runTurn } from "./orchestrator";
+import type { AiBinding } from "./workersAi";
+import { ModelChain, ModelChainError, WorkersAi, WorkersAiUnavailableError } from "./workersAi";
 
 // Only the default export may be a value here: Workers treats every named
 // export of the main module as an entry point.
 
 interface Env {
     readonly ASSETS: { fetch(request: Request): Promise<Response> };
+    readonly AI: AiBinding;
+    readonly WORKERS_AI_MODELS: string;
     readonly GEMINI_API_KEY: string;
     readonly GEMINI_MODELS: string;
     readonly CITYVOICE_URL: string;
     readonly CLIENT_ID: string;
+    /** "true" only in local development, to compare models turn by turn. Never set online. */
+    readonly ALLOW_MODEL_OVERRIDE?: string;
 }
 
 const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
@@ -39,6 +45,7 @@ const turnSchema = z.object({
         .array(z.object({ role: z.enum(["user", "model"]), parts: z.array(partSchema) }))
         .max(80)
         .default([]),
+    models: z.array(z.string().max(100)).max(5).optional(),
 });
 
 function oauthConfig(env: Env, request: Request): OAuthClientConfig {
@@ -97,6 +104,15 @@ async function handleTurn(request: Request, env: Env): Promise<Response> {
     }
     const config = oauthConfig(env, request);
     const cookies: string[] = [];
+    // Refresh tokens rotate, and reusing a replaced one makes CityVoice revoke
+    // the whole link. So renewed tokens are saved on every answer, errors included.
+    const reply = (body: Record<string, unknown>, status = 200, extraCookie?: string): Response => {
+        const headers = new Headers();
+        for (const cookie of extraCookie === undefined ? cookies : [...cookies, extraCookie]) {
+            headers.append("set-cookie", cookie);
+        }
+        return Response.json(body, { status, headers });
+    };
     const renew = async (current: Tokens): Promise<Tokens | undefined> => {
         if (current.refreshToken === undefined) {
             return undefined;
@@ -111,12 +127,24 @@ async function handleTurn(request: Request, env: Env): Promise<Response> {
         tokens = (await renew(tokens)) ?? tokens;
     }
 
-    const model = new Gemini({
-        apiKey: env.GEMINI_API_KEY,
-        models: env.GEMINI_MODELS.split(",")
+    const list = (value: string) =>
+        value
+            .split(",")
             .map((name) => name.trim())
-            .filter((name) => name.length > 0),
-    });
+            .filter((name) => name.length > 0);
+    // Workers AI answers in about a second per step; Gemini's free tier is the backup.
+    const model = new ModelChain(
+        [
+            new WorkersAi(
+                env.AI,
+                env.ALLOW_MODEL_OVERRIDE === "true" && parsed.data.models !== undefined
+                    ? parsed.data.models
+                    : list(env.WORKERS_AI_MODELS),
+            ),
+            new Gemini({ apiKey: env.GEMINI_API_KEY, models: list(env.GEMINI_MODELS) }),
+        ],
+        (error) => error instanceof ModelUnavailableError || error instanceof WorkersAiUnavailableError,
+    );
     const play = (accessToken: string) =>
         runTurn(
             { model, tools: withCachedToolList(new McpHttpClient(`${config.serverUrl}/mcp`, accessToken)) },
@@ -135,22 +163,16 @@ async function handleTurn(request: Request, env: Env): Promise<Response> {
             }
             const renewed = await renew(tokens);
             if (renewed === undefined) {
-                return Response.json(
-                    { speech: NOT_LINKED_SPEECH, linked: false },
-                    { status: 401, headers: { "set-cookie": clearCookie(SESSION_COOKIE) } },
-                );
+                return reply({ speech: NOT_LINKED_SPEECH, linked: false }, 401, clearCookie(SESSION_COOKIE));
             }
             result = await play(renewed.accessToken);
         }
-        const headers = new Headers();
-        for (const cookie of cookies) {
-            headers.append("set-cookie", cookie);
-        }
-        return Response.json({ ...result, linked: true, ms: Date.now() - started }, { headers });
+        return reply({ ...result, linked: true, ms: Date.now() - started });
     } catch (error) {
-        const speech = error instanceof ModelUnavailableError ? MODEL_DOWN_SPEECH : "Something went wrong on my side.";
+        const modelDown = error instanceof ModelChainError && error.allUnavailable;
+        const speech = modelDown ? MODEL_DOWN_SPEECH : "Something went wrong on my side.";
         console.error(JSON.stringify({ message: "turn failed", error: String(error) }));
-        return Response.json({ speech, linked: true, error: true }, { status: 502 });
+        return reply({ speech, linked: true, error: true }, 502);
     }
 }
 

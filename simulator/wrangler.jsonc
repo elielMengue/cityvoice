@@ -7,6 +7,8 @@
     // (/api/*, /login, /callback) reaches the Worker.
     "assets": { "directory": "./public", "binding": "ASSETS" },
     "observability": { "enabled": true },
+    // Open models on Cloudflare; runs remotely even in local development.
+    "ai": { "binding": "AI" },
     // GEMINI_API_KEY is a secret: .env.local for `bun run dev`, and
     // `wrangler secret put GEMINI_API_KEY --env production` online.
     "vars": {
@@ -14,7 +16,8 @@
         // Public OAuth client registered with CityVoice for both redirect URIs
         // (localhost:8791 and the deployed simulator). Not a secret.
         "CLIENT_ID": "BaI2IsJ-KlbWExFT",
-        // Tried in order; the free tier is often busy.
+        // Tried in order: Workers AI first (fast), then Gemini (often busy on the free tier).
+        "WORKERS_AI_MODELS": "@cf/meta/llama-4-scout-17b-16e-instruct,@cf/mistralai/mistral-small-3.1-24b-instruct",
         "GEMINI_MODELS": "gemini-3.8-flash,gemini-3.7-flash,gemini-3.6-flash,gemini-flash-latest",
     },
     "env": {
@@ -23,6 +26,7 @@
             "vars": {
                 "CITYVOICE_URL": "https://cityvoice.demop.workers.dev",
                 "CLIENT_ID": "BaI2IsJ-KlbWExFT",
+                "WORKERS_AI_MODELS": "@cf/meta/llama-4-scout-17b-16e-instruct,@cf/mistralai/mistral-small-3.1-24b-instruct",
                 "GEMINI_MODELS": "gemini-3.8-flash,gemini-3.7-flash,gemini-3.6-flash,gemini-flash-latest",
             },
         },

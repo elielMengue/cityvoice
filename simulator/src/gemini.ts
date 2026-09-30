@@ -22,6 +22,28 @@ interface GenerateResponse {
     readonly error?: { readonly code: number; readonly message: string };
 }
 
+/**
+ * Gemini 3 refuses a history holding function calls without its thought
+ * signature, which is the case when another model started the conversation.
+ * Google documents this placeholder for calls it did not produce.
+ */
+const FOREIGN_CALL_SIGNATURE = "skip_thought_signature_validator";
+
+export function withSignatures(contents: readonly Content[]): Content[] {
+    return contents.map((content) =>
+        content.role !== "model"
+            ? content
+            : {
+                  ...content,
+                  parts: content.parts.map((part) =>
+                      part.functionCall !== undefined && part["thoughtSignature"] === undefined
+                          ? { ...part, thoughtSignature: FOREIGN_CALL_SIGNATURE }
+                          : part,
+                  ),
+              },
+    );
+}
+
 /** Busy or failing on Google's side: worth trying another model. Anything else is our bug. */
 function isRetryable(status: number): boolean {
     return status === 429 || status === 404 || status >= 500;
@@ -48,7 +70,7 @@ export class Gemini implements Model {
     }): Promise<{ readonly content: Content; readonly model: string }> {
         const body = JSON.stringify({
             systemInstruction: { parts: [{ text: request.systemInstruction }] },
-            contents: request.contents,
+            contents: withSignatures(request.contents),
             tools: [{ functionDeclarations: request.tools }],
             generationConfig: { temperature: 0.2 },
         });

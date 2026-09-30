@@ -17,7 +17,7 @@ interface TurnResponse {
     readonly speech: string;
     readonly history?: unknown[];
     readonly trace?: TraceEntry[];
-    readonly models?: string[];
+    readonly steps?: { readonly model: string; readonly ms: number }[];
     readonly ms?: number;
     readonly linked?: boolean;
 }
@@ -75,16 +75,59 @@ function node(tag: string, text?: string, className?: string): HTMLElement {
 
 /* ---------- Voice out ---------- */
 
-function speak(text: string): Promise<void> {
+// Natural US voices, best first. Edge and Windows ship "Microsoft ... Online
+// (Natural)" voices, Chrome ships "Google US English", Safari ships "Samantha".
+const PREFERRED_VOICES = [
+    /Aria.*Natural/i,
+    /Jenny.*Natural/i,
+    /Natural.*United States/i,
+    /Google US English/i,
+    /Samantha/i,
+];
+
+/**
+ * Browsers load their voices after the page, and getVoices() is empty until
+ * they arrive. Speaking before that falls back to the system voice, which on
+ * a French Windows reads English with a French accent.
+ */
+function loadVoices(): Promise<SpeechSynthesisVoice[]> {
+    const voices = speechSynthesis.getVoices();
+    if (voices.length > 0) {
+        return Promise.resolve(voices);
+    }
     return new Promise((resolve) => {
-        if (!("speechSynthesis" in window)) {
-            resolve();
-            return;
-        }
+        const done = () => resolve(speechSynthesis.getVoices());
+        speechSynthesis.addEventListener("voiceschanged", done, { once: true });
+        setTimeout(done, 1500);
+    });
+}
+
+let chosenVoice: SpeechSynthesisVoice | undefined;
+
+async function usVoice(): Promise<SpeechSynthesisVoice | undefined> {
+    if (chosenVoice !== undefined) {
+        return chosenVoice;
+    }
+    const english = (await loadVoices()).filter((voice) => voice.lang.replace("_", "-").toLowerCase() === "en-us");
+    chosenVoice =
+        PREFERRED_VOICES.map((pattern) => english.find((voice) => pattern.test(voice.name))).find(
+            (voice) => voice !== undefined,
+        ) ?? english[0];
+    if (chosenVoice === undefined) {
+        hint.textContent = "No US English voice is installed, so Alexa may sound odd. Try Chrome or Edge.";
+    }
+    return chosenVoice;
+}
+
+async function speak(text: string): Promise<void> {
+    if (!("speechSynthesis" in window)) {
+        return;
+    }
+    const voice = await usVoice();
+    return new Promise((resolve) => {
         speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = "en-US";
-        const voice = speechSynthesis.getVoices().find((candidate) => candidate.lang === "en-US");
         if (voice !== undefined) {
             utterance.voice = voice;
         }
@@ -175,8 +218,16 @@ function renderCard(entries: readonly TraceEntry[]): void {
 function renderTrace(utterance: string, response: TurnResponse): void {
     const turn = node("li", undefined, "turn");
     turn.append(node("div", `"${utterance}"`, "said"));
-    const models = [...new Set(response.models ?? [])].join(", ");
-    turn.append(node("div", `${response.ms ?? 0} ms in total${models ? `, model: ${models}` : ""}`, "meta"));
+    const steps = response.steps ?? [];
+    const models = [...new Set(steps.map((step) => step.model.replace(/^@cf\/[^/]+\//, "")))].join(", ");
+    const stepTimes = steps.map((step) => `${step.ms}`).join(" + ");
+    turn.append(
+        node(
+            "div",
+            `${response.ms ?? 0} ms in total${models ? `; ${models}, ${steps.length} steps: ${stepTimes} ms` : ""}`,
+            "meta",
+        ),
+    );
     for (const entry of response.trace ?? []) {
         const call = node("div", undefined, "call");
         call.dataset["error"] = String(entry.isError);
@@ -215,7 +266,7 @@ async function sendTurn(utterance: string): Promise<void> {
         renderTrace(utterance, result);
         await speak(result.speech);
     } catch {
-        speechText.textContent = "I couldn't reach the simulator. Check your connection and try again.";
+        speechText.textContent = "Sorry, I'm having trouble right now. Please try again in a moment.";
     } finally {
         busy = false;
         setLight("idle");

@@ -233,3 +233,17 @@ Time lost is our own rough estimate.
   linking.
 - **Workaround:** `revokeExistingGrants: false` for our shared demo accounts.
 - **Time lost:** 45 minutes.
+
+### The rate limiting binding let three times its limit through
+
+- **Product:** Workers rate limiting binding, free plan
+- **Tried:** a limit of 20 requests per minute on the OAuth routes, to protect
+  the 1,000 KV writes a day of the free plan.
+- **Happened:** 60 requests in 30 seconds, all with the same key, were all
+  allowed. Logging inside the Worker showed the binding called every time with
+  a stable key and answering `success: true`. The documentation does call it
+  permissive and eventually consistent, but nothing says how far over the
+  limit it can go.
+- **Workaround:** we keep it to slow floods down, and added an exact daily
+  budget counted in D1 for the requests that write to KV.
+- **Time lost:** 40 minutes.

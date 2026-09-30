@@ -110,6 +110,20 @@ bun run test
 | `server/` | The MCP server (Bun, TypeScript)           |
 | `docs/`   | Engineering practices and the friction log |
 
+## Protecting the free tier
+
+Everything runs on free plans, so abuse could stop the demo for everyone.
+
+- **Client registration is closed** in production. The simulator and the smoke
+  test use clients registered ahead of time. To add one, deploy once with
+  `ALLOW_CLIENT_REGISTRATION` set to `"true"`, register, and deploy again
+  without it.
+- **A daily budget** counted in D1 caps the OAuth requests that write to KV,
+  which allows 1,000 writes a day. Past it, linking says "try again tomorrow".
+- **Per-minute limits** slow floods down on the OAuth routes, MCP calls and
+  simulator turns. They are approximate by design, which is why the daily
+  budget exists.
+
 ## Design choices
 
 - **Stateless MCP layer.** Every MCP request is served by a fresh server

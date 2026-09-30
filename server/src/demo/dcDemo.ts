@@ -104,9 +104,12 @@ function createRandom(seed: number): () => number {
     };
 }
 
-function requestId(number: number): string {
-    return `26-00${number}`;
+/** Demo request numbers look like Washington DC's: "26-00484821". */
+export function formatDemoRequestId(sequence: number): string {
+    return `26-00${sequence}`;
 }
+
+const requestId = formatDemoRequestId;
 
 function iso(date: Date): string {
     return date.toISOString();

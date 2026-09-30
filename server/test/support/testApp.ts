@@ -1,8 +1,12 @@
 import { expect } from "bun:test";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { createDemoAuthenticator, DEMO_RESIDENT_HEADER } from "../../src/auth/authenticator";
-import { DEMO_RESIDENTS } from "../../src/demo/dcDemo";
-import { createDemoDeps } from "../../src/demo/demoDeps";
+import { BunSqliteDatabase } from "../../src/db/bunSqliteDatabase";
+import { seedStatements } from "../../src/db/seedStatements";
+import { buildDemoSeed, DEMO_RESIDENTS, FIRST_DEMO_REQUEST_NUMBER } from "../../src/demo/dcDemo";
+import { createDemoDeps, createSqlDemoDeps } from "../../src/demo/demoDeps";
 import { createFetchHandler, MCP_PATH } from "../../src/httpServer";
 import { SILENT_LOGGER } from "../../src/logger";
 import type { ToolDeps } from "../../src/tools/toolContext";
@@ -53,16 +57,38 @@ export interface TestApp {
     readonly spoken: string[];
 }
 
-export function createTestApp(): TestApp {
+/**
+ * Where resident data and the sandbox live. The scenarios run against both,
+ * so the SQL adapters that D1 uses in production pass the same tests as the
+ * in-memory ones.
+ */
+export type TestBackend = "memory" | "sql";
+export const TEST_BACKENDS: readonly TestBackend[] = ["memory", "sql"];
+
+const MIGRATIONS_DIR = join(import.meta.dir, "..", "..", "migrations");
+
+/** A fresh SQLite database with the real migrations and the demo seed. */
+export function createSeededDatabase(now: Date): BunSqliteDatabase {
+    const db = new BunSqliteDatabase();
+    db.migrate([readFileSync(join(MIGRATIONS_DIR, "0001_init.sql"), "utf8")]);
+    const statements = seedStatements(buildDemoSeed(now), FIRST_DEMO_REQUEST_NUMBER);
+    // bun:sqlite runs the batch synchronously, so the seed is in place on return.
+    void db.batch(statements.map(({ sql, values }) => db.prepare(sql).bind(...values)));
+    return db;
+}
+
+export function createTestApp(backend: TestBackend = "memory"): TestApp {
     let now = TEST_NOW.getTime();
     let draftCounter = 0;
-    const deps = createDemoDeps(
-        () => new Date(now),
-        () => {
-            draftCounter += 1;
-            return `draft-${draftCounter}`;
-        },
-    );
+    const clock = () => new Date(now);
+    const newId = () => {
+        draftCounter += 1;
+        return `draft-${draftCounter}`;
+    };
+    const deps =
+        backend === "memory"
+            ? createDemoDeps(clock, newId)
+            : createSqlDemoDeps(createSeededDatabase(TEST_NOW), clock, newId);
     const handle = createFetchHandler({
         logger: SILENT_LOGGER,
         tools: deps,

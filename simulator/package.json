@@ -1,0 +1,21 @@
+{
+    "name": "@cityvoice/simulator",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build:web": "bun build web/app.ts --outfile public/app.js --target browser --minify",
+        "dev": "bun run build:web && wrangler dev --port 8791 --env-file .env.local",
+        "deploy": "bun run build:web && wrangler deploy --env production",
+        "test": "bun test",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "zod": "4.6.5"
+    },
+    "devDependencies": {
+        "@types/bun": "^1.4.2",
+        "typescript": "^6",
+        "wrangler": "4.143.0"
+    }
+}

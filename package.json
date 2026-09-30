@@ -2,7 +2,8 @@
     "name": "cityvoice",
     "private": true,
     "workspaces": [
-        "server"
+        "server",
+        "simulator"
     ],
     "scripts": {
         "typecheck": "bun run --filter '*' typecheck",

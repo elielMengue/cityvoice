@@ -4,6 +4,8 @@ import { clearCookie, LOGIN_COOKIE, readCookie, SESSION_COOKIE, setCookie } from
 import { Gemini, ModelUnavailableError } from "./gemini";
 import { McpHttpClient, UnauthorizedError } from "./mcpClient";
 import type { OAuthClientConfig, PendingLogin, Tokens } from "./oauthClient";
+import type { RateLimiter } from "./limits";
+import { allowed, SLOW_DOWN_SPEECH, visitorKey } from "./limits";
 import { exchangeCode, refresh, startLogin } from "./oauthClient";
 import type { Content, ToolDeclaration, ToolResult, ToolServer } from "./orchestrator";
 import { runTurn } from "./orchestrator";
@@ -23,6 +25,8 @@ interface Env {
     readonly CLIENT_ID: string;
     /** "true" only in local development, to compare models turn by turn. Never set online. */
     readonly ALLOW_MODEL_OVERRIDE?: string;
+    readonly TURN_LIMITER?: RateLimiter;
+    readonly LOGIN_LIMITER?: RateLimiter;
 }
 
 const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
@@ -101,6 +105,12 @@ async function handleTurn(request: Request, env: Env): Promise<Response> {
     let tokens = parseCookie<Tokens>(request, SESSION_COOKIE, tokensSchema);
     if (tokens === undefined) {
         return Response.json({ speech: NOT_LINKED_SPEECH, linked: false }, { status: 401 });
+    }
+    if (!(await allowed(env.TURN_LIMITER, visitorKey(tokens.accessToken, request)))) {
+        return Response.json(
+            { speech: SLOW_DOWN_SPEECH, linked: true },
+            { status: 429, headers: { "retry-after": "60" } },
+        );
     }
     const config = oauthConfig(env, request);
     const cookies: string[] = [];
@@ -181,6 +191,9 @@ async function route(request: Request, env: Env): Promise<Response> {
     const config = oauthConfig(env, request);
 
     if (url.pathname === "/login" && request.method === "GET") {
+        if (!(await allowed(env.LOGIN_LIMITER, visitorKey(undefined, request)))) {
+            return new Response("Too many sign-in attempts. Try again in a minute.", { status: 429 });
+        }
         const { url: authorizeUrl, pending } = await startLogin(config);
         return redirect(authorizeUrl, [setCookie(LOGIN_COOKIE, JSON.stringify(pending), LOGIN_MAX_AGE_SECONDS)]);
     }

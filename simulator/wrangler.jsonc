@@ -9,6 +9,12 @@
     "observability": { "enabled": true },
     // Open models on Cloudflare; runs remotely even in local development.
     "ai": { "binding": "AI" },
+    // Per minute. A person talks a few turns a minute; a script would drain the
+    // free model allowance.
+    "ratelimits": [
+        { "name": "TURN_LIMITER", "namespace_id": "1003", "simple": { "limit": 10, "period": 60 } },
+        { "name": "LOGIN_LIMITER", "namespace_id": "1004", "simple": { "limit": 10, "period": 60 } },
+    ],
     // GEMINI_API_KEY is a secret: .env.local for `bun run dev`, and
     // `wrangler secret put GEMINI_API_KEY --env production` online.
     "vars": {
@@ -23,6 +29,10 @@
     "env": {
         "production": {
             "name": "cityvoice-simulator",
+            "ratelimits": [
+                { "name": "TURN_LIMITER", "namespace_id": "1003", "simple": { "limit": 10, "period": 60 } },
+                { "name": "LOGIN_LIMITER", "namespace_id": "1004", "simple": { "limit": 10, "period": 60 } },
+            ],
             "vars": {
                 "CITYVOICE_URL": "https://cityvoice.demop.workers.dev",
                 "CLIENT_ID": "BaI2IsJ-KlbWExFT",

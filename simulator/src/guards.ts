@@ -1,0 +1,81 @@
+/**
+ * Rules the simulated Alexa+ enforces in code, because a model can break a
+ * rule written in its prompt. Open models were seen filing a report the
+ * resident never confirmed, and answering the city's questions for them.
+ * Real Alexa+ confirms actions with the customer itself; this is our
+ * stand-in for that.
+ */
+
+/** Tools that change something for the resident, and so need their clear yes. */
+export const CONFIRMED_TOOLS: ReadonlySet<string> = new Set(["submit_report", "support_report"]);
+
+const YES_PHRASES = [
+    "yes",
+    "yeah",
+    "yep",
+    "yup",
+    "sure",
+    "ok",
+    "okay",
+    "please do",
+    "go ahead",
+    "do it",
+    "send it",
+    "send",
+    "submit",
+    "confirm",
+    "correct",
+    "that's right",
+    "that is right",
+    "sounds good",
+    "add my support",
+    "support it",
+    "me too",
+];
+
+const NO_PHRASES = ["no", "nope", "not", "don't", "do not", "wait", "cancel", "stop", "wrong"];
+
+function words(text: string): string {
+    return ` ${text
+        .toLowerCase()
+        .replace(/[^a-z0-9'\s]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()} `;
+}
+
+/** A clear yes: a yes phrase, and no word that takes it back. */
+export function isClearYes(utterance: string): boolean {
+    const text = words(utterance);
+    const has = (phrase: string) => text.includes(` ${phrase} `);
+    return YES_PHRASES.some(has) && !NO_PHRASES.some(has);
+}
+
+export const NOT_CONFIRMED_MESSAGE =
+    "The resident has not confirmed in their latest message. Do not call this tool yet: read the report back " +
+    "and ask them whether to send it, then wait for their answer.";
+
+const STOP_WORDS = new Set(["the", "and", "for", "with", "it's", "its", "that", "this", "there", "was", "are", "is"]);
+
+function contentWords(text: string): string[] {
+    return words(text)
+        .trim()
+        .split(" ")
+        .filter((word) => word.length >= 3 && !STOP_WORDS.has(word));
+}
+
+/**
+ * Keeps only the draft answers the resident actually gave: each needs at
+ * least one of its words in something the resident said. Anything else is
+ * dropped, so the server asks the question instead of the model guessing.
+ */
+export function groundedAnswers(
+    answers: Record<string, unknown>,
+    residentSaid: readonly string[],
+): Record<string, unknown> {
+    const said = words(residentSaid.join(" "));
+    return Object.fromEntries(
+        Object.entries(answers).filter(
+            ([, value]) => typeof value === "string" && contentWords(value).some((word) => said.includes(` ${word} `)),
+        ),
+    );
+}

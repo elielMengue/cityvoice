@@ -90,9 +90,13 @@ export class McpHttpClient implements ToolServer {
         const result = await this.rpc("tools/call", { name, arguments: args });
         const content = (result["content"] as { type: string; text?: string }[] | undefined) ?? [];
         const structured = result["structuredContent"] as { data?: Record<string, unknown> } | undefined;
+        const isError = result["isError"] === true;
+        const text = content.find((item) => item.type === "text")?.text ?? "";
         return {
-            isError: result["isError"] === true,
-            speech: content.find((item) => item.type === "text")?.text ?? "",
+            isError,
+            speech: text,
+            // The SDK reports bad arguments this way. The model can fix its call; the resident must not hear it.
+            ...(isError && text.startsWith("Input validation error") ? { forModel: true } : {}),
             ...(structured?.data === undefined ? {} : { data: structured.data }),
         };
     }

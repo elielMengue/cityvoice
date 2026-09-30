@@ -86,16 +86,46 @@ describe("runTurn", () => {
         });
     });
 
-    test("passes tool errors to the model as errors", async () => {
+    test("says a tool error as it is, without asking the model again", async () => {
         const model = scriptedModel([
-            [{ functionCall: { name: "list_service_types", args: { problem_description: "gas smell" } } }],
-            [{ text: "Please leave the building and call 911 now." }],
+            [{ functionCall: { name: "start_report", args: { problem_description: "gas smell" } } }],
+            [{ text: "This must never be said." }],
         ]);
-        const tools = fakeTools({ list_service_types: { isError: true, speech: "Call 911 now." } });
+        const tools = fakeTools({ start_report: { isError: true, speech: "Call 911 now." } });
 
-        await runTurn({ model, tools }, [], "gas smell");
+        const result = await runTurn({ model, tools }, [], "gas smell");
 
-        expect(model.calls[1]?.[2]?.parts[0]?.functionResponse?.response).toEqual({ error: "Call 911 now." });
+        expect(result.speech).toBe("Call 911 now.");
+        expect(model.calls).toHaveLength(1);
+    });
+
+    test("says the answer of a resident-facing tool directly, and keeps it in the history", async () => {
+        const model = scriptedModel([[{ functionCall: { name: "start_report", args: {} } }]]);
+        const tools = fakeTools({
+            start_report: { isError: false, speech: "Is it in the road or in a crosswalk?", data: {} },
+        });
+
+        const result = await runTurn({ model, tools }, [], "pothole at 14th and U");
+
+        expect(result.speech).toBe("Is it in the road or in a crosswalk?");
+        expect(result.steps).toHaveLength(1);
+        expect(result.history.at(-1)).toEqual({
+            role: "model",
+            parts: [{ text: "Is it in the road or in a crosswalk?" }],
+        });
+    });
+
+    test("lets the model go on after an intermediate tool", async () => {
+        const model = scriptedModel([
+            [{ functionCall: { name: "resolve_location", args: { spoken_place: "15th and U" } } }],
+            [{ text: "Got it, 15th and U." }],
+        ]);
+        const tools = fakeTools({ resolve_location: { isError: false, speech: "I found 15th and U.", data: {} } });
+
+        const result = await runTurn({ model, tools }, [], "no, it's on 15th");
+
+        expect(model.calls).toHaveLength(2);
+        expect(result.speech).toBe("Got it, 15th and U.");
     });
 
     test("keeps the conversation, so the next turn has the context", async () => {
@@ -163,5 +193,32 @@ describe("Gemini", () => {
         });
 
         await expect(gemini.generate(request)).rejects.toBeInstanceOf(ModelUnavailableError);
+    });
+});
+
+describe("runTurn with a rejected argument", () => {
+    test("lets the model fix its call and never speaks the validation message", async () => {
+        const model = scriptedModel([
+            [{ functionCall: { name: "get_my_reports", args: { status: null } } }],
+            [{ functionCall: { name: "get_my_reports", args: {} } }],
+        ]);
+        let calls = 0;
+        const tools: ToolServer = {
+            listTools: async () => ({
+                tools: [{ name: "get_my_reports", description: "", parametersJsonSchema: {} }],
+                instructions: "",
+            }),
+            callTool: async () => {
+                calls += 1;
+                return calls === 1
+                    ? { isError: true, speech: "Input validation error: status: Invalid option", forModel: true }
+                    : { isError: false, speech: "You have one report.", data: {} };
+            },
+        };
+
+        const result = await runTurn({ model, tools }, [], "What's happening with my reports?");
+
+        expect(result.speech).toBe("You have one report.");
+        expect(result.speech).not.toContain("Input validation");
     });
 });

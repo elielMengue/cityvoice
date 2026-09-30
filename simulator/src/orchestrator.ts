@@ -44,6 +44,8 @@ export interface ToolResult {
     readonly isError: boolean;
     readonly speech: string;
     readonly data?: Record<string, unknown>;
+    /** The text is meant for the model, for example a rejected argument, and is never spoken. */
+    readonly forModel?: boolean;
 }
 
 export interface ToolServer {
@@ -79,6 +81,15 @@ export const MAX_STEPS = 8;
 
 export const FALLBACK_SPEECH = "Sorry, I lost my train of thought. Could you say that again?";
 
+/** Tools whose speech is the answer to the resident: a question, a readback, or the outcome. */
+const SPEAKS_TO_RESIDENT: ReadonlySet<string> = new Set([
+    "start_report",
+    "draft_report",
+    "submit_report",
+    "support_report",
+    "get_my_reports",
+]);
+
 const PERSONA = `You are Alexa+, speaking to a resident of Washington DC through an Echo Show.
 You help them report non-emergency problems to the city and follow their reports, using the CityVoice tools.
 
@@ -95,8 +106,9 @@ How to talk:
 
 How to act:
 - The tools already know who the resident is and where they live. Never ask for their name or address;
-  for "my house" or "home", pass those words to resolve_location.
-- Follow the order in the server instructions below. Always check for nearby reports before drafting.
+  for "my house" or "home", pass those words as the place.
+- Follow the server instructions below: start with start_report, then its next_step. Call start_report for
+  every problem the resident describes, emergencies included: it gives the right safety advice.
 - Never answer a question for the resident. If the city needs an answer, ask the resident and wait.
 - Call submit_report with user_confirmed true only if the resident's latest message is a clear yes
   to sending the report. Otherwise read the report back and ask them.
@@ -159,17 +171,19 @@ export async function runTurn(
         }
 
         const responses: Part[] = [];
+        const results: { readonly name: string; readonly result: ToolResult; readonly blocked: boolean }[] = [];
         for (const call of calls) {
             let args = call.args ?? {};
             if (call.name === "draft_report" && typeof args["answers"] === "object" && args["answers"] !== null) {
                 args = { ...args, answers: groundedAnswers(args["answers"] as Record<string, unknown>, residentSaid) };
             }
             const started = now();
-            const result: ToolResult =
-                CONFIRMED_TOOLS.has(call.name) && !isClearYes(utterance)
-                    ? { isError: true, speech: NOT_CONFIRMED_MESSAGE }
-                    : await deps.tools.callTool(call.name, args);
+            const blocked = CONFIRMED_TOOLS.has(call.name) && !isClearYes(utterance);
+            const result: ToolResult = blocked
+                ? { isError: true, speech: NOT_CONFIRMED_MESSAGE }
+                : await deps.tools.callTool(call.name, args);
             trace.push({ tool: call.name, args, ...result, ms: Math.round(now() - started) });
+            results.push({ name: call.name, result, blocked });
             responses.push({
                 functionResponse: {
                     ...(call.id === undefined ? {} : { id: call.id }),
@@ -181,6 +195,19 @@ export async function runTurn(
             });
         }
         contents.push({ role: "user", parts: responses });
+
+        // When the tools already said what the resident should hear, say it
+        // now instead of asking the model to repeat it: one model step fewer,
+        // and the wording stays exactly the server's.
+        const finished = results.every(
+            ({ name, result, blocked }) =>
+                !blocked && result.forModel !== true && (SPEAKS_TO_RESIDENT.has(name) || result.isError),
+        );
+        if (finished) {
+            const speech = [...new Set(results.map(({ result }) => result.speech))].join(" ");
+            contents.push({ role: "model", parts: [{ text: speech }] });
+            return { speech, history: contents, trace, steps };
+        }
     }
 
     return { speech: FALLBACK_SPEECH, history: contents, trace, steps };

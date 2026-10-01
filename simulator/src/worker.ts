@@ -168,6 +168,7 @@ async function handleTurn(request: Request, env: Env): Promise<Response> {
             new Gemini({ apiKey: env.GEMINI_API_KEY, models: list(env.GEMINI_MODELS) }),
         ],
         (error) => error instanceof ModelUnavailableError || error instanceof WorkersAiUnavailableError,
+        (error) => console.warn(JSON.stringify({ message: "model fallback", error: String(error) })),
     );
     const play = (accessToken: string) =>
         runTurn(

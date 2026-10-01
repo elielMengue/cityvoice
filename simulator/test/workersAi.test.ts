@@ -136,6 +136,19 @@ describe("ModelChain", () => {
         expect(result.model).toBe("backup");
     });
 
+    test("says why it fell back, once per skipped host", async () => {
+        const reasons: string[] = [];
+        const chain = new ModelChain(
+            [failing, answering("backup")],
+            () => true,
+            (error) => reasons.push(String(error)),
+        );
+
+        await chain.generate(request);
+
+        expect(reasons).toEqual(["Error: down"]);
+    });
+
     test("uses the first host when it works", async () => {
         const result = await new ModelChain([answering("first"), answering("second")]).generate(request);
 

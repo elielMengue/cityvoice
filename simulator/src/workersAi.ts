@@ -160,15 +160,20 @@ export class ModelChain implements Model {
         private readonly chain: readonly Model[],
         /** Errors that only mean "busy, try later", as opposed to a bug. */
         private readonly isUnavailable: (error: unknown) => boolean = () => false,
+        /** Told why a host failed when the next one gets the turn, so a quiet fallback still shows in the logs. */
+        private readonly onFallback: (error: unknown) => void = () => {},
     ) {}
 
     async generate(request: Parameters<Model["generate"]>[0]): ReturnType<Model["generate"]> {
         const errors: unknown[] = [];
-        for (const model of this.chain) {
+        for (const [index, model] of this.chain.entries()) {
             try {
                 return await model.generate(request);
             } catch (error) {
                 errors.push(error);
+                if (index < this.chain.length - 1) {
+                    this.onFallback(error);
+                }
             }
         }
         throw new ModelChainError(errors, errors.length > 0 && errors.every(this.isUnavailable));

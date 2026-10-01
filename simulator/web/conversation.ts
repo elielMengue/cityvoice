@@ -1,7 +1,7 @@
 import { refreshAccount } from "./account";
 import { postTurn } from "./api";
 import { renderTrace } from "./scenes";
-import { renderCard } from "./screen/card";
+import { showOnScreen } from "./screen/screen";
 import { setState, show } from "./stage";
 import { speak } from "./voice/speak";
 
@@ -29,7 +29,7 @@ export async function sendTurn(utterance: string): Promise<void> {
             void refreshAccount();
         }
         show(utterance, result.speech);
-        renderCard(result.trace ?? []);
+        void showOnScreen(result.trace ?? []);
         renderTrace(utterance, result);
         await speak(result.speech);
     } catch {

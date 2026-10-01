@@ -31,6 +31,8 @@ export interface ToolDeclaration {
     readonly name: string;
     readonly description: string;
     readonly parametersJsonSchema: Record<string, unknown>;
+    /** The tool's MCP App, shown on screens. For the page only; the model never sees it. */
+    readonly uiResourceUri?: string;
 }
 
 export interface Model {
@@ -62,6 +64,7 @@ export interface TraceEntry {
     readonly speech: string;
     readonly data?: Record<string, unknown>;
     readonly ms: number;
+    readonly uiResourceUri?: string;
 }
 
 export interface TurnResult {
@@ -89,6 +92,7 @@ const SPEAKS_TO_RESIDENT: ReadonlySet<string> = new Set([
     "submit_report",
     "support_report",
     "get_my_reports",
+    "show_report_map",
 ]);
 
 const PERSONA = `You are Alexa+, speaking to a resident of Washington DC through an Echo Show.
@@ -135,6 +139,9 @@ export async function runTurn(
     const now = deps.now ?? (() => Date.now());
     const { tools, instructions } = await deps.tools.listTools();
     const toolNames = new Set(tools.map((tool) => tool.name));
+    const uiOf = new Map(
+        tools.flatMap((tool) => (tool.uiResourceUri === undefined ? [] : [[tool.name, tool.uiResourceUri]])),
+    );
     const contents: Content[] = [...recentHistory(history), { role: "user", parts: [{ text: utterance }] }];
     const residentSaid = contents
         .filter((content) => content.role === "user")
@@ -193,7 +200,14 @@ export async function runTurn(
             const result: ToolResult = blocked
                 ? { isError: true, speech: NOT_CONFIRMED_MESSAGE }
                 : await deps.tools.callTool(call.name, args);
-            trace.push({ tool: call.name, args, ...result, ms: Math.round(now() - started) });
+            const ui = uiOf.get(call.name);
+            trace.push({
+                tool: call.name,
+                args,
+                ...result,
+                ms: Math.round(now() - started),
+                ...(ui === undefined ? {} : { uiResourceUri: ui }),
+            });
             if (result.forModel === true) {
                 unspoken.push(result.speech);
             }

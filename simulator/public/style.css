@@ -253,6 +253,20 @@ body {
     color: #1f6a44;
 }
 
+/* What a tool's MCP App shows, in the place of the card. */
+.app {
+    width: 100%;
+}
+
+.app-frame {
+    display: block;
+    width: 100%;
+    border: 0;
+    border-radius: 20px;
+    background: var(--surface);
+    box-shadow: 0 6px 24px rgb(20 40 80 / 8%);
+}
+
 /* ---------- The microphone ---------- */
 
 .voice {

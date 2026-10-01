@@ -2,7 +2,7 @@ import { refreshAccount } from "./account";
 import { forgetConversation, sendTurn } from "./conversation";
 import { element } from "./dom";
 import { clearTrace, wireScenes } from "./scenes";
-import { clearCard } from "./screen/card";
+import { clearScreen } from "./screen/screen";
 import { clearStage, show } from "./stage";
 import { openTyping, wireTyping } from "./typing";
 import { listen } from "./voice/listen";
@@ -20,7 +20,7 @@ wireScenes();
 element<HTMLButtonElement>("reset").addEventListener("click", () => {
     forgetConversation();
     clearTrace();
-    clearCard();
+    void clearScreen();
     clearStage();
 });
 

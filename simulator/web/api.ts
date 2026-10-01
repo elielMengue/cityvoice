@@ -7,6 +7,15 @@ export interface TraceEntry {
     readonly speech: string;
     readonly data?: Record<string, unknown>;
     readonly ms: number;
+    /** The tool's MCP App, when it has one. */
+    readonly uiResourceUri?: string;
+}
+
+/** An MCP App page, and the hosts its Content Security Policy allows. */
+export interface AppPage {
+    readonly html: string;
+    readonly resourceDomains: readonly string[];
+    readonly connectDomains: readonly string[];
 }
 
 export interface TurnResponse {
@@ -25,6 +34,14 @@ export async function postTurn(utterance: string, history: readonly unknown[]): 
         body: JSON.stringify({ utterance, history }),
     });
     return (await response.json()) as TurnResponse;
+}
+
+export async function getApp(uri: string): Promise<AppPage> {
+    const response = await fetch(`/api/app?uri=${encodeURIComponent(uri)}`);
+    if (!response.ok) {
+        throw new Error(`App ${uri} unavailable: ${response.status}`);
+    }
+    return (await response.json()) as AppPage;
 }
 
 export async function getSession(): Promise<{ readonly linked: boolean }> {

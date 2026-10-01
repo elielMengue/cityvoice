@@ -205,6 +205,33 @@ async function handleTurn(request: Request, env: Env): Promise<Response> {
     }
 }
 
+/**
+ * Hands the page an MCP App to show next to the answer. The URI comes from a
+ * tool's metadata and carries a hash of the page, so the browser may keep it.
+ * CityVoice's own MCP rate limit covers these reads.
+ */
+async function handleApp(request: Request, env: Env): Promise<Response> {
+    const uri = new URL(request.url).searchParams.get("uri");
+    if (uri === null || !uri.startsWith("ui://") || uri.length > 200) {
+        return Response.json({ error: "Invalid app" }, { status: 400 });
+    }
+    const tokens = parseCookie<Tokens>(request, SESSION_COOKIE, tokensSchema);
+    if (tokens === undefined) {
+        return Response.json({ linked: false }, { status: 401 });
+    }
+    const config = oauthConfig(env, request);
+    try {
+        const client = new McpHttpClient(`${config.serverUrl}/mcp`, tokens.accessToken, cityvoiceFetch(env));
+        return Response.json(await client.readApp(uri), { headers: { "cache-control": "private, max-age=86400" } });
+    } catch (error) {
+        if (error instanceof UnauthorizedError) {
+            return Response.json({ linked: false }, { status: 401 });
+        }
+        console.error(JSON.stringify({ message: "app read failed", error: String(error) }));
+        return Response.json({ error: "App unavailable" }, { status: 502 });
+    }
+}
+
 async function route(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const config = oauthConfig(env, request);
@@ -243,6 +270,9 @@ async function route(request: Request, env: Env): Promise<Response> {
     }
     if (url.pathname === "/api/turn" && request.method === "POST") {
         return handleTurn(request, env);
+    }
+    if (url.pathname === "/api/app" && request.method === "GET") {
+        return handleApp(request, env);
     }
     return env.ASSETS.fetch(request);
 }

@@ -184,6 +184,28 @@ describe("Gemini", () => {
         await expect(gemini.generate(request)).rejects.toThrow("bad schema");
     });
 
+    test("sends Gemini only the fields it knows, never the tool's app", async () => {
+        let sent: { tools: { functionDeclarations: Record<string, unknown>[] }[] } | undefined;
+        const gemini = new Gemini({
+            apiKey: "test",
+            models: ["a"],
+            sleep: async () => {},
+            fetch: (async (_url: string, init: RequestInit) => {
+                sent = JSON.parse(String(init.body)) as typeof sent;
+                return answer(200, { candidates: [{ content: { role: "model", parts: [{ text: "hi" }] } }] });
+            }) as unknown as FetchLike,
+        });
+
+        await gemini.generate({
+            ...request,
+            tools: [{ name: "map", description: "d", parametersJsonSchema: {}, uiResourceUri: "ui://x/map.html" }],
+        });
+
+        expect(sent?.tools[0]?.functionDeclarations).toEqual([
+            { name: "map", description: "d", parametersJsonSchema: {} },
+        ]);
+    });
+
     test("reports when no model answered", async () => {
         const gemini = new Gemini({
             apiKey: "test",
@@ -270,6 +292,30 @@ describe("runTurn with an emergency", () => {
 });
 
 describe("runTurn context", () => {
+    test("tells the page which app comes with a tool, and says the map's sentence directly", async () => {
+        const model = scriptedModel([[{ functionCall: { name: "show_report_map", args: {} } }]]);
+        const tools: ToolServer = {
+            listTools: async () => ({
+                tools: [
+                    {
+                        name: "show_report_map",
+                        description: "",
+                        parametersJsonSchema: {},
+                        uiResourceUri: "ui://cityvoice/report-map.abc.html",
+                    },
+                ],
+                instructions: "",
+            }),
+            callTool: async () => ({ isError: false, speech: "Here's the map around your home.", data: {} }),
+        };
+
+        const result = await runTurn({ model, tools }, [], "Show me the map");
+
+        expect(result.speech).toBe("Here's the map around your home.");
+        expect(result.steps).toHaveLength(1);
+        expect(result.trace[0]?.uiResourceUri).toBe("ui://cityvoice/report-map.abc.html");
+    });
+
     test("sends the model tool data without what only the screen uses", async () => {
         const model = scriptedModel([
             [{ functionCall: { name: "resolve_location", args: {} } }],

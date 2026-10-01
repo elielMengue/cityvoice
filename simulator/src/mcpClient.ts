@@ -8,6 +8,23 @@ export const ALEXA_PROTOCOL_VERSION = "2025-11-25";
 
 const REQUEST_TIMEOUT_MS = 5_000;
 
+/** What Alexa+ declares, so the server knows it can show MCP Apps. */
+const MCP_APPS_EXTENSION = { "io.modelcontextprotocol/ui": { mimeTypes: ["text/html;profile=mcp-app"] } };
+
+/** An MCP App page, and the hosts its Content Security Policy allows. */
+export interface AppResource {
+    readonly html: string;
+    readonly resourceDomains: readonly string[];
+    readonly connectDomains: readonly string[];
+}
+
+interface ListedTool {
+    readonly name: string;
+    readonly description?: string;
+    readonly inputSchema: Record<string, unknown>;
+    readonly _meta?: { readonly ui?: { readonly resourceUri?: string }; readonly "ui/resourceUri"?: string };
+}
+
 export class UnauthorizedError extends Error {}
 
 interface JsonRpcResponse {
@@ -69,21 +86,42 @@ export class McpHttpClient implements ToolServer {
     async listTools(): Promise<{ readonly tools: readonly ToolDeclaration[]; readonly instructions: string }> {
         const initialized = await this.rpc("initialize", {
             protocolVersion: ALEXA_PROTOCOL_VERSION,
-            capabilities: {},
+            capabilities: { extensions: MCP_APPS_EXTENSION },
             clientInfo: { name: "cityvoice-alexa-simulator", version: "0.1.0" },
         });
         const listed = await this.rpc("tools/list", {});
-        const tools = (
-            listed["tools"] as { name: string; description?: string; inputSchema: Record<string, unknown> }[]
-        )
+        const tools = (listed["tools"] as ListedTool[])
             // ping is for health checks, not for residents.
             .filter((tool) => tool.name !== "ping")
-            .map((tool) => ({
-                name: tool.name,
-                description: tool.description ?? "",
-                parametersJsonSchema: forGemini(tool.inputSchema),
-            }));
+            .map((tool) => {
+                // Older servers only set the flat key.
+                const ui = tool._meta?.ui?.resourceUri ?? tool._meta?.["ui/resourceUri"];
+                return {
+                    name: tool.name,
+                    description: tool.description ?? "",
+                    parametersJsonSchema: forGemini(tool.inputSchema),
+                    ...(ui === undefined ? {} : { uiResourceUri: ui }),
+                };
+            });
         return { tools, instructions: String(initialized["instructions"] ?? "") };
+    }
+
+    async readApp(uri: string): Promise<AppResource> {
+        const result = await this.rpc("resources/read", { uri });
+        const [page] =
+            (result["contents"] as {
+                text?: string;
+                _meta?: { ui?: { csp?: { resourceDomains?: string[]; connectDomains?: string[] } } };
+            }[]) ?? [];
+        if (page?.text === undefined) {
+            throw new Error(`MCP resource ${uri} has no page`);
+        }
+        const csp = page._meta?.ui?.csp;
+        return {
+            html: page.text,
+            resourceDomains: csp?.resourceDomains ?? [],
+            connectDomains: csp?.connectDomains ?? [],
+        };
     }
 
     async callTool(name: string, args: Record<string, unknown>): Promise<ToolResult> {

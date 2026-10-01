@@ -4,13 +4,14 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build:web": "bun build web/main.ts --outfile public/app.js --target browser --minify",
+        "build:web": "bun build web/main.ts --outdir public --entry-naming app.js --chunk-naming \"chunks/[name]-[hash].[ext]\" --splitting --target browser --minify",
         "dev": "bun run build:web && wrangler dev --port 8791 --env-file .env.local",
         "deploy": "bun run build:web && wrangler deploy --env production",
         "test": "bun test",
         "typecheck": "tsc --noEmit"
     },
     "dependencies": {
+        "@modelcontextprotocol/ext-apps": "2.0.3",
         "zod": "4.6.5"
     },
     "devDependencies": {

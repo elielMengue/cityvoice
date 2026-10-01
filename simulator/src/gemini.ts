@@ -71,7 +71,16 @@ export class Gemini implements Model {
         const body = JSON.stringify({
             systemInstruction: { parts: [{ text: request.systemInstruction }] },
             contents: withSignatures(request.contents),
-            tools: [{ functionDeclarations: request.tools }],
+            // Only what Gemini knows: it rejects any other field.
+            tools: [
+                {
+                    functionDeclarations: request.tools.map(({ name, description, parametersJsonSchema }) => ({
+                        name,
+                        description,
+                        parametersJsonSchema,
+                    })),
+                },
+            ],
             generationConfig: { temperature: 0.2 },
         });
         const failures: string[] = [];

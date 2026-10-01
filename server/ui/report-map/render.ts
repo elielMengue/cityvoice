@@ -1,6 +1,6 @@
 import type { MapPin, MapStatus, ReportMap } from "../../src/map/reportMap";
 import type { LatLng } from "./tiles";
-import { fitView, screenPixel, TILE_HOSTS, tilesFor } from "./tiles";
+import { fitView, screenPixel, tilesFor } from "./tiles";
 
 /**
  * Draws the report map: street tiles, a ring on the place, one pin per
@@ -15,9 +15,11 @@ const STATUS_LABELS: Record<MapStatus, string> = { open: "Waiting", progress: "I
 /** Room around the outermost pins, so none sits on the edge or under the legend. */
 const PADDING = 48;
 
+/** OpenStreetMap tiles, served through CityVoice's own origin. */
+const TILES_BASE = document.querySelector<HTMLMetaElement>('meta[name="cityvoice-tiles"]')?.content ?? "";
+
 function tileUrl(x: number, y: number, zoom: number): string {
-    const host = TILE_HOSTS[(x + y) % TILE_HOSTS.length];
-    return `${host}/${zoom}/${x}/${y}.png`;
+    return `${TILES_BASE}/${zoom}/${x}/${y}.png`;
 }
 
 function element(tag: string, className: string, text?: string): HTMLElement {

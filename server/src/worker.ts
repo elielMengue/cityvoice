@@ -10,12 +10,14 @@ import type { Config } from "./config";
 import { BUDGET_NAME, budgetExhaustedResponse, OAUTH_DAILY_UNITS, takeDailyUnit, usesDailyBudget } from "./dailyBudget";
 import { loadConfig } from "./config";
 import type { SqlDatabase } from "./db/sqlDatabase";
-import { DEMO_RESIDENTS } from "./demo/dcDemo";
+import { DC_BOUNDS, DEMO_RESIDENTS } from "./demo/dcDemo";
 import { createSqlDemoDeps } from "./demo/demoDeps";
 import { createFetchHandler, HEALTH_PATH, MCP_PATH } from "./httpServer";
 import type { RateLimiter } from "./limits";
 import { checkLimits } from "./limits";
 import { createLogger } from "./logger";
+import type { TileCache } from "./map/tileProxy";
+import { serveTile, TILES_PATH } from "./map/tileProxy";
 import { SqlResidentStore } from "./residents/sqlResidentStore";
 
 // Only the default export may be a value here: Workers treats every named
@@ -58,6 +60,11 @@ function readConfig(env: WorkerEnv): Config {
     });
 }
 
+/** The Workers edge cache, where the runtime has one. */
+function edgeCache(): TileCache | undefined {
+    return (globalThis as { caches?: { default?: TileCache } }).caches?.default;
+}
+
 /**
  * Local development: the demo authenticator picks the resident from a header.
  * loadConfig refuses this mode in production.
@@ -71,6 +78,7 @@ function buildDemoWorker(env: WorkerEnv, config: Config): WorkerFetch {
         logger: createLogger(config.logLevel),
         tools: createSqlDemoDeps(env.DB),
         authenticate,
+        tileCache: edgeCache(),
     });
     return (request) => handler(request);
 }
@@ -121,6 +129,9 @@ function buildOAuthWorker(config: Config): WorkerFetch {
         const { pathname } = new URL(request.url);
         if (pathname === HEALTH_PATH && request.method === "GET") {
             return Response.json({ status: "ok" });
+        }
+        if (pathname.startsWith(`${TILES_PATH}/`)) {
+            return serveTile(request, { area: DC_BOUNDS, cache: edgeCache() });
         }
         if (pathname === AUTHORIZE_PATH && env.OAUTH_PROVIDER !== undefined) {
             return handleAuthorize(

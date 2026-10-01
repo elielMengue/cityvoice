@@ -169,15 +169,20 @@ console.log(`info  round trip ${elapsed} ms`);
 const forged = await mcpCall(`${tokens.access_token}x`, "ping", {});
 check(forged.status === 401, "a tampered token is refused");
 
-// 8. Screens: the map tool points at its MCP App, and the page is served
-// with a policy that lets it load street tiles.
+// 8. Screens: the map tool points at its MCP App, the page is served with a
+// policy that lets it load tiles from this server, and the tiles come back.
 const listed = await (await mcpRequest(tokens.access_token, "tools/list", {})).text();
-const mapUri = /"resourceUri":"(ui:\/\/cityvoice\/report-map\.[0-9a-f]+\.html)"/.exec(listed)?.[1];
+const mapUri = /"resourceUri":"(ui:[^"]+\.html)"/.exec(listed)?.[1];
 check(mapUri !== undefined, "show_report_map comes with its map page");
 const mapPage = await (await mcpRequest(tokens.access_token, "resources/read", { uri: mapUri })).text();
 check(
-    mapPage.includes("text/html;profile=mcp-app") && mapPage.includes("https://tile.openstreetmap.org"),
-    "the map page is served, allowed to load street tiles",
+    mapPage.includes("text/html;profile=mcp-app") && mapPage.includes(`${baseUrl}/tiles`),
+    "the map page is served, with its tiles on this server",
+);
+const tile = await fetch(`${baseUrl}/tiles/16/18744/25070.png`);
+check(
+    tile.status === 200 && tile.headers.get("content-type") === "image/png",
+    `a map tile comes back (got ${tile.status})`,
 );
 
 // 9. Demo accounts are shared by every judge: a second link as the same

@@ -39,8 +39,12 @@ function callerFrom(authInfo: AuthInfo | undefined): Caller {
     return { residentId: typeof residentId === "string" ? residentId : undefined };
 }
 
-/** Builds a fresh MCP server, with every tool, for one caller. */
-function createMcpServer(deps: ToolDeps, caller: Caller): McpServer {
+/**
+ * Builds a fresh MCP server, with every tool, for one caller. The origin is
+ * where the request arrived, so the map page loads its tiles from the same
+ * server that sent it.
+ */
+function createMcpServer(deps: ToolDeps, caller: Caller, origin: string): McpServer {
     const server = new McpServer({ name: SERVER_NAME, version: SERVER_VERSION }, { instructions: INSTRUCTIONS });
     registerPingTool(server);
     registerStartReportTool(server, deps, caller);
@@ -52,7 +56,7 @@ function createMcpServer(deps: ToolDeps, caller: Caller): McpServer {
     registerSupportReportTool(server, deps, caller);
     registerGetMyReportsTool(server, deps, caller);
     registerShowReportMapTool(server, deps, caller);
-    registerReportMapResource(server);
+    registerReportMapResource(server, origin);
     registerServicesResource(server);
     registerNeighborhoodUpdatePrompt(server);
     return server;
@@ -66,10 +70,14 @@ function createMcpServer(deps: ToolDeps, caller: Caller): McpServer {
  * SSE stream that carries the single result.
  */
 export function createMcpFetch(logger: Logger, deps: ToolDeps): McpFetch {
-    const handler = createMcpHandler(({ authInfo }) => createMcpServer(deps, callerFrom(authInfo)), {
-        legacy: "stateless",
-        maxRequestBodySize: MAX_REQUEST_BODY_BYTES,
-        onerror: (error) => logger.warn("mcp request rejected", { error: error.message }),
-    });
+    const handler = createMcpHandler(
+        ({ authInfo, requestInfo }) =>
+            createMcpServer(deps, callerFrom(authInfo), new URL(requestInfo?.url ?? "http://localhost").origin),
+        {
+            legacy: "stateless",
+            maxRequestBodySize: MAX_REQUEST_BODY_BYTES,
+            onerror: (error) => logger.warn("mcp request rejected", { error: error.message }),
+        },
+    );
     return (request, authInfo) => handler.fetch(request, authInfo === undefined ? {} : { authInfo });
 }

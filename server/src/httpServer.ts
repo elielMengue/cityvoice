@@ -1,5 +1,7 @@
 import type { Authenticator } from "./auth/authenticator";
 import type { Logger } from "./logger";
+import type { TileCache } from "./map/tileProxy";
+import { serveTile, TILES_PATH } from "./map/tileProxy";
 import { createMcpFetch } from "./mcpServer";
 import type { ToolDeps } from "./tools/toolContext";
 
@@ -10,6 +12,9 @@ export interface HttpServerDeps {
     readonly logger: Logger;
     readonly tools: ToolDeps;
     readonly authenticate: Authenticator;
+    /** Where map tiles are kept once fetched. The edge cache on Workers; none locally. */
+    readonly tileCache?: TileCache | undefined;
+    readonly tileFetch?: (input: string, init?: RequestInit) => Promise<Response>;
 }
 
 /**
@@ -21,6 +26,8 @@ export function createFetchHandler({
     logger,
     tools,
     authenticate,
+    tileCache,
+    tileFetch,
 }: HttpServerDeps): (request: Request) => Promise<Response> {
     const mcpFetch = createMcpFetch(logger, tools);
 
@@ -32,6 +39,12 @@ export function createFetchHandler({
         try {
             if (pathname === HEALTH_PATH && request.method === "GET") {
                 response = Response.json({ status: "ok" });
+            } else if (pathname.startsWith(`${TILES_PATH}/`)) {
+                response = await serveTile(request, {
+                    area: tools.serviceArea,
+                    cache: tileCache,
+                    ...(tileFetch === undefined ? {} : { fetch: tileFetch }),
+                });
             } else if (pathname === MCP_PATH) {
                 response = await mcpFetch(request, await authenticate(request));
             } else {

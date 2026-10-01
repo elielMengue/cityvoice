@@ -6,13 +6,6 @@
 
 export const TILE_SIZE = 256;
 
-/**
- * Tile servers the page loads from. The resource's CSP allows exactly these.
- * OpenStreetMap's own tiles need no key, and its usage policy allows a
- * light, attributed use like this one.
- */
-export const TILE_HOSTS = ["https://tile.openstreetmap.org"];
-
 /** Close enough for a street, far enough to see a few blocks around it. */
 export const MAX_ZOOM = 17;
 /** All of DC fits at this zoom on a small screen. */

@@ -284,3 +284,18 @@ Time lost is our own rough estimate.
 - **Workaround:** OpenStreetMap's own tiles, which need no key and allow light
   use with attribution. The dark theme inverts them with a CSS filter.
 - **Time lost:** 15 minutes.
+
+### OpenStreetMap blocked the map on one network and not on another
+
+- **Product:** OpenStreetMap tile servers, from a sandboxed MCP App frame
+- **Happened:** the map worked from our machine, but on a tester's network
+  every tile was OpenStreetMap's "Access blocked" image. The frame has an
+  opaque origin and sends no useful Referer, and the tile servers block
+  clients they cannot identify. We could not reproduce it with curl.
+- **Workaround:** the CityVoice Worker serves the tiles itself under /tiles,
+  fetched with a User-Agent that names the project and cached for a week,
+  limited to the zooms and area the map uses. The page's policy now lists
+  only our own origin, which is also what Alexa recommends. One catch remains
+  locally: Chrome stops a sandboxed frame from loading from localhost, so
+  tiles only show once deployed.
+- **Time lost:** 40 minutes.

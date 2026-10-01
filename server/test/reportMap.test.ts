@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import type { ReportMap } from "../src/map/reportMap";
 import { REPORT_MAP_URI } from "../src/ui/reportMapResource";
-import { fitView, MAX_ZOOM, screenPixel, TILE_HOSTS, tilesFor, worldPixel } from "../ui/report-map/tiles";
+import { fitView, MAX_ZOOM, screenPixel, tilesFor, worldPixel } from "../ui/report-map/tiles";
 import { createTestApp, TEST_BACKENDS } from "./support/testApp";
 
 const U_STREET = { lat: 38.91705, lng: -77.03196 };
@@ -151,7 +151,7 @@ describe("the map as an MCP App", () => {
         expect(withMap.sort()).toEqual(["get_my_reports", "show_report_map"]);
     });
 
-    test("the page is a versioned HTML resource that may only load street tiles", async () => {
+    test("the page is a versioned HTML resource that loads tiles from this server only", async () => {
         const app = createTestApp();
 
         const { result } = await app.rpc("resources/read", { uri: REPORT_MAP_URI });
@@ -166,7 +166,8 @@ describe("the map as an MCP App", () => {
         expect(page?.mimeType).toBe("text/html;profile=mcp-app");
         expect(page?.text).toStartWith("<!doctype html>");
         expect(page?.text).not.toContain("/* SCRIPT */");
-        expect(page?._meta.ui.csp.resourceDomains).toEqual(TILE_HOSTS);
+        expect(page?._meta.ui.csp.resourceDomains).toEqual(["http://localhost"]);
+        expect(page?.text).toContain('content="http://localhost/tiles"');
         expect(page?._meta.ui.csp.connectDomains).toBeUndefined();
     });
 });

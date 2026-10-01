@@ -223,6 +223,39 @@ describe("runTurn with a rejected argument", () => {
     });
 });
 
+describe("runTurn with an emergency", () => {
+    test("lets the server answer when the model only says to call 911", async () => {
+        const model = scriptedModel([[{ text: "Call 911." }]]);
+        const tools = fakeTools({
+            start_report: {
+                isError: true,
+                speech: "That could be an emergency. Please leave the building and call 911 now. I haven't filed anything.",
+            },
+        });
+
+        const result = await runTurn({ model, tools }, [], "There's a gas smell on my street");
+
+        expect(tools.called).toEqual(["start_report"]);
+        expect(result.trace[0]?.args).toEqual({ problem_description: "There's a gas smell on my street" });
+        expect(result.speech).toBe(
+            "That could be an emergency. Please leave the building and call 911 now. I haven't filed anything.",
+        );
+    });
+
+    test("keeps the model's words when it mentions 911 later in a turn", async () => {
+        const model = scriptedModel([
+            [{ functionCall: { name: "resolve_location", args: {} } }],
+            [{ text: "If anyone is hurt, call 911." }],
+        ]);
+        const tools = fakeTools({ resolve_location: { isError: false, speech: "Found it.", data: {} } });
+
+        const result = await runTurn({ model, tools }, [], "Where is that?");
+
+        expect(tools.called).toEqual(["resolve_location"]);
+        expect(result.speech).toBe("If anyone is hurt, call 911.");
+    });
+});
+
 describe("runTurn context", () => {
     test("sends the model tool data without what only the screen uses", async () => {
         const model = scriptedModel([

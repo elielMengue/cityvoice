@@ -166,6 +166,12 @@ export async function runTurn(
                 };
             }
         }
+        if (calls.length === 0 && step === 0 && /\b911\b/.test(rawText(content)) && toolNames.has("start_report")) {
+            // The model judged it an emergency on its own. The server decides
+            // what to say, and makes sure nothing gets filed.
+            calls = [{ id: `safety_${step}`, name: "start_report", args: { problem_description: utterance } }];
+            contents[contents.length - 1] = { role: "model", parts: calls.map((call) => ({ functionCall: call })) };
+        }
         if (calls.length === 0) {
             const speech = cleanSpeech(rawText(content), toolNames);
             return { speech: speech.length > 0 ? speech : FALLBACK_SPEECH, history: contents, trace, steps };

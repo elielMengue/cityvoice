@@ -2,6 +2,7 @@ import type { AuthInfo } from "@modelcontextprotocol/server";
 import { createMcpHandler, McpServer } from "@modelcontextprotocol/server";
 
 import type { Logger } from "./logger";
+import { registerServicesResource } from "./resources/servicesResource";
 import { registerDraftReportTool } from "./tools/draftReport";
 import { registerFindNearbyReportsTool } from "./tools/findNearbyReports";
 import { registerGetMyReportsTool } from "./tools/getMyReports";
@@ -51,6 +52,7 @@ function createMcpServer(deps: ToolDeps, caller: Caller): McpServer {
     registerGetMyReportsTool(server, deps, caller);
     registerShowReportMapTool(server, deps, caller);
     registerReportMapResource(server);
+    registerServicesResource(server);
     return server;
 }
 

@@ -221,6 +221,19 @@ describe("runTurn with a rejected argument", () => {
         expect(result.speech).toBe("You have one report.");
         expect(result.speech).not.toContain("Input validation");
     });
+
+    test("never says the validation message, even when the model repeats it", async () => {
+        const rejection = "Input validation error: user_confirmed: expected boolean, received string";
+        const model = scriptedModel([
+            [{ functionCall: { name: "submit_report", args: { user_confirmed: "yes" } } }],
+            [{ text: rejection }],
+        ]);
+        const tools = fakeTools({ submit_report: { isError: true, speech: rejection, forModel: true } });
+
+        const result = await runTurn({ model, tools }, [], "Yes, send it.");
+
+        expect(result.speech).toBe(FALLBACK_SPEECH);
+    });
 });
 
 describe("runTurn with an emergency", () => {

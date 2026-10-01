@@ -141,6 +141,8 @@ export async function runTurn(
         .flatMap((content) => content.parts.flatMap((part) => (part.text === undefined ? [] : [part.text])));
     const trace: TraceEntry[] = [];
     const steps: ModelStep[] = [];
+    // Messages meant for the model only. If it repeats one, it is not said.
+    const unspoken: string[] = [];
 
     for (let step = 0; step < MAX_STEPS; step += 1) {
         const stepStarted = now();
@@ -173,8 +175,10 @@ export async function runTurn(
             contents[contents.length - 1] = { role: "model", parts: calls.map((call) => ({ functionCall: call })) };
         }
         if (calls.length === 0) {
-            const speech = cleanSpeech(rawText(content), toolNames);
-            return { speech: speech.length > 0 ? speech : FALLBACK_SPEECH, history: contents, trace, steps };
+            const text = rawText(content);
+            const speech = cleanSpeech(text, toolNames);
+            const sayable = speech.length > 0 && !unspoken.some((message) => text.includes(message));
+            return { speech: sayable ? speech : FALLBACK_SPEECH, history: contents, trace, steps };
         }
 
         const responses: Part[] = [];
@@ -190,6 +194,9 @@ export async function runTurn(
                 ? { isError: true, speech: NOT_CONFIRMED_MESSAGE }
                 : await deps.tools.callTool(call.name, args);
             trace.push({ tool: call.name, args, ...result, ms: Math.round(now() - started) });
+            if (result.forModel === true) {
+                unspoken.push(result.speech);
+            }
             results.push({ name: call.name, result, blocked });
             responses.push({
                 functionResponse: {

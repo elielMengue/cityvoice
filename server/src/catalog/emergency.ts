@@ -17,6 +17,24 @@ const LEAVE_AND_CALL =
 
 const RULES: readonly EmergencyRule[] = [
     {
+        // First: someone who already called 911 should not be told to call
+        // it again. They hear that they did the right thing.
+        phrases: [
+            "called 911",
+            "calling 911",
+            "on the phone with 911",
+            "911 is coming",
+            "911 is on the way",
+            "called the police",
+            "called an ambulance",
+            "called the fire department",
+            "help is on the way",
+        ],
+        speech:
+            "You did the right thing calling 911. Stay safe and follow what they tell you. " +
+            "When it's over, I can help you report anything the city should fix.",
+    },
+    {
         phrases: [
             "gas leak",
             "gas leaking",
@@ -80,6 +98,11 @@ const RULES: readonly EmergencyRule[] = [
             "car crash",
             "car accident",
             "hit by a car",
+            "in danger",
+            "being followed",
+            "following me",
+            "threatening me",
+            "threatened",
         ],
         speech: "That sounds like an emergency. Please call 911 now. I haven't filed anything.",
     },

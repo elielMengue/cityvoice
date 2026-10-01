@@ -61,8 +61,9 @@ export function registerStartReportTool(server: McpServer, deps: ToolDeps, calle
                     .min(1)
                     .max(500)
                     .describe(
-                        "The problem in the user's words, for example \"there's a huge pothole\" or " +
-                            '"the streetlight is out".',
+                        "What the user said about the problem, word for word and whole, for example " +
+                            '"there\'s a huge pothole" or "I called 911, someone is hurt". Do not shorten it: ' +
+                            "what the user already did matters.",
                     ),
                 spoken_place: z
                     .string()

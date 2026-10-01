@@ -80,6 +80,8 @@ describe("detectEmergency", () => {
         "a man is bleeding on the corner",
         "there was a car accident at the light",
         "I have an emergency",
+        "I'm in danger",
+        "someone is following me home",
         "please call an ambulance",
     ])("flags: %s", (description) => {
         expect(detectEmergency(description)).toContain("911");
@@ -97,9 +99,17 @@ describe("detectEmergency", () => {
         "the smoke detector sign fell off the pole",
         "it's not an emergency, but the sidewalk is cracked",
         "can you help me report a pothole",
+        "the hole is a danger for cyclists",
         "an emergency vehicle is parked in the bike lane",
     ])("lets through: %s", (description) => {
         expect(detectEmergency(description)).toBeUndefined();
+    });
+
+    test("someone who already called 911 is not told to call it again", () => {
+        expect(detectEmergency("I called 911 now because I'm in danger")).toBe(
+            "You did the right thing calling 911. Stay safe and follow what they tell you. " +
+                "When it's over, I can help you report anything the city should fix.",
+        );
     });
 
     test("an emergency without details sends to 911 and still offers to report", () => {

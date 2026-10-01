@@ -222,3 +222,31 @@ describe("runTurn with a rejected argument", () => {
         expect(result.speech).not.toContain("Input validation");
     });
 });
+
+describe("runTurn context", () => {
+    test("sends the model tool data without what only the screen uses", async () => {
+        const model = scriptedModel([
+            [{ functionCall: { name: "resolve_location", args: {} } }],
+            [{ text: "Got it." }],
+        ]);
+        const tools = fakeTools({
+            resolve_location: {
+                isError: false,
+                speech: "I found it.",
+                data: { location_id: "loc-1", lat: 38.9, lng: -77.0, nearby: [{ id: "r-1", distance_m: 40 }] },
+            },
+        });
+
+        const result = await runTurn({ model, tools }, [], "14th and U");
+
+        const response = model.calls[1]?.at(-1)?.parts[0]?.functionResponse?.response;
+        expect(response).toEqual({ speech: "I found it.", data: { location_id: "loc-1", nearby: [{ id: "r-1" }] } });
+        // The screen still gets everything.
+        expect(result.trace[0]?.data).toEqual({
+            location_id: "loc-1",
+            lat: 38.9,
+            lng: -77.0,
+            nearby: [{ id: "r-1", distance_m: 40 }],
+        });
+    });
+});

@@ -1,4 +1,5 @@
 import { CONFIRMED_TOOLS, groundedAnswers, isClearYes, NOT_CONFIRMED_MESSAGE } from "./guards";
+import { dataForModel, recentHistory } from "./modelView";
 import { cleanSpeech, extractTextToolCalls } from "./textToolCalls";
 
 /**
@@ -134,7 +135,7 @@ export async function runTurn(
     const now = deps.now ?? (() => Date.now());
     const { tools, instructions } = await deps.tools.listTools();
     const toolNames = new Set(tools.map((tool) => tool.name));
-    const contents: Content[] = [...history, { role: "user", parts: [{ text: utterance }] }];
+    const contents: Content[] = [...recentHistory(history), { role: "user", parts: [{ text: utterance }] }];
     const residentSaid = contents
         .filter((content) => content.role === "user")
         .flatMap((content) => content.parts.flatMap((part) => (part.text === undefined ? [] : [part.text])));
@@ -190,7 +191,7 @@ export async function runTurn(
                     name: call.name,
                     response: result.isError
                         ? { error: result.speech }
-                        : { speech: result.speech, data: result.data ?? {} },
+                        : { speech: result.speech, data: dataForModel(result.data ?? {}) },
                 },
             });
         }

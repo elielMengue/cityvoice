@@ -28,7 +28,11 @@ function base64Url(bytes: ArrayBuffer | Uint8Array): string {
     return Buffer.from(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)).toString("base64url");
 }
 
-async function mcpCall(token: string | undefined, name: string, args: Record<string, unknown>): Promise<Response> {
+async function mcpRequest(
+    token: string | undefined,
+    method: string,
+    params: Record<string, unknown>,
+): Promise<Response> {
     const headers: Record<string, string> = {
         "content-type": "application/json",
         accept: "application/json, text/event-stream",
@@ -40,8 +44,12 @@ async function mcpCall(token: string | undefined, name: string, args: Record<str
     return fetch(`${baseUrl}/mcp`, {
         method: "POST",
         headers,
-        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: args } }),
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
     });
+}
+
+function mcpCall(token: string | undefined, name: string, args: Record<string, unknown>): Promise<Response> {
+    return mcpRequest(token, "tools/call", { name, arguments: args });
 }
 
 // 1. Without a token, the server must refuse and say where to authenticate.
@@ -161,7 +169,18 @@ console.log(`info  round trip ${elapsed} ms`);
 const forged = await mcpCall(`${tokens.access_token}x`, "ping", {});
 check(forged.status === 401, "a tampered token is refused");
 
-// 8. Demo accounts are shared by every judge: a second link as the same
+// 8. Screens: the map tool points at its MCP App, and the page is served
+// with a policy that lets it load street tiles.
+const listed = await (await mcpRequest(tokens.access_token, "tools/list", {})).text();
+const mapUri = /"resourceUri":"(ui:\/\/cityvoice\/report-map\.[0-9a-f]+\.html)"/.exec(listed)?.[1];
+check(mapUri !== undefined, "show_report_map comes with its map page");
+const mapPage = await (await mcpRequest(tokens.access_token, "resources/read", { uri: mapUri })).text();
+check(
+    mapPage.includes("text/html;profile=mcp-app") && mapPage.includes("https://tile.openstreetmap.org"),
+    "the map page is served, allowed to load street tiles",
+);
+
+// 9. Demo accounts are shared by every judge: a second link as the same
 // resident must not log the first one out.
 async function linkAgain(): Promise<string | undefined> {
     const secondVerifier = base64Url(crypto.getRandomValues(new Uint8Array(32)));

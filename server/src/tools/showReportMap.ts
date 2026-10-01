@@ -24,6 +24,10 @@ const SHOW_REPORT_MAP_TOOL = "show_report_map";
 export const MAP_RADIUS_METERS = 300;
 /** More pins than this stop being readable from across the room, and too long to say. */
 export const MAX_PINS = 8;
+/** "This week", "lately": the longest look back the map offers. */
+const MAX_RECENT_DAYS = 30;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 const outputSchema = z.object({
     speech: z.string(),
@@ -40,11 +44,15 @@ function serviceName(request: ServiceRequest): string {
     return findServiceType(request.service_code)?.name ?? request.service_name;
 }
 
-/** Open reports within the radius, closest first. */
-async function openReportsAround(deps: ToolDeps, point: GeoPoint, excluding?: string): Promise<ServiceRequest[]> {
-    const open = await deps.open311.findRequests({ status: "open" });
-    return open
-        .filter((request) => request.service_request_id !== excluding)
+/** Reports within the radius, closest first. Open ones only, unless keep says otherwise. */
+async function reportsAround(
+    deps: ToolDeps,
+    point: GeoPoint,
+    keep: (request: ServiceRequest) => boolean = (request) => request.status === "open",
+): Promise<ServiceRequest[]> {
+    const all = await deps.open311.findRequests({});
+    return all
+        .filter(keep)
         .map((request) => ({ request, distance: distanceMeters(point, { lat: request.lat, lng: request.long }) }))
         .filter(({ distance }) => distance <= MAP_RADIUS_METERS)
         .sort((a, b) => a.distance - b.distance)
@@ -91,6 +99,24 @@ function focusSpeech(focus: MapPin, others: readonly MapPin[]): string {
     return `${subject} ${capitalized(countOf(others.length, "other open report"))} ${verb} nearby: ${describePins(others)}.`;
 }
 
+/** "Here's what's new around your home this week. Two new reports: ... One was fixed: ..." */
+function recentSpeech(address: string, days: number, fresh: readonly MapPin[], fixed: readonly MapPin[]): string {
+    const period = days === 7 ? "this week" : days === 1 ? "since yesterday" : `in the last ${days} days`;
+    if (fresh.length === 0 && fixed.length === 0) {
+        return `Nothing new around ${address} ${period}. No reports were filed or fixed within a few blocks.`;
+    }
+    const filed =
+        fresh.length === 0
+            ? "No new reports."
+            : `${capitalized(countOf(fresh.length, "new report"))}: ${describePins(fresh)}.`;
+    const closed =
+        fixed.length === 0
+            ? ""
+            : ` ${capitalized(countOf(fixed.length, "report"))} ${fixed.length === 1 ? "was" : "were"} fixed: ` +
+              `${describePins(fixed)}.`;
+    return `Here's what's new around ${address} ${period}. ${filed}${closed}`;
+}
+
 const WHICH_PLACE_SPEECH = "Which place should I show? You can say an intersection, like 14th and U.";
 
 /** The place to map, or what to say instead. Home when the resident named nothing. */
@@ -129,7 +155,8 @@ export function registerShowReportMapTool(server: McpServer, deps: ToolDeps, cal
                 "Shows a map of city reports on devices with a screen, and says what it shows. Use it when the user " +
                 'asks to see reports: "show me the map", "what\'s been reported around here?", "show me my ' +
                 "pothole\". Pass request_id to center on one report, or the place: spoken_place in the user's " +
-                "words, or a location_id you already have. With none of them, the map is around the user's home.",
+                "words, or a location_id you already have. With none of them, the map is around the user's home. " +
+                'For "what\'s new around here this week?", set recent_days.',
             inputSchema: z.object({
                 location_id: z
                     .string()
@@ -142,6 +169,16 @@ export function registerShowReportMapTool(server: McpServer, deps: ToolDeps, cal
                     .nullish()
                     .describe('The place exactly as the user said it, like "14th and U" or "my street".'),
                 request_id: z.string().nullish().describe("A request_id, to center the map on that report."),
+                recent_days: z
+                    .number()
+                    .int()
+                    .min(1)
+                    .max(MAX_RECENT_DAYS)
+                    .nullish()
+                    .describe(
+                        'For "what\'s new" questions: show what was filed or fixed in the last days, 7 for ' +
+                            '"this week". Leave out to show what is open now.',
+                    ),
             }),
             outputSchema,
             annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
@@ -164,7 +201,15 @@ export function registerShowReportMapTool(server: McpServer, deps: ToolDeps, cal
                     return toolFailure("I couldn't find that report anymore.");
                 }
                 const point = { lat: request.lat, lng: request.long };
-                const others = (await openReportsAround(deps, point, requestId)).slice(0, MAX_PINS - 1).map(pin);
+                const others = (
+                    await reportsAround(
+                        deps,
+                        point,
+                        (other) => other.status === "open" && other.service_request_id !== requestId,
+                    )
+                )
+                    .slice(0, MAX_PINS - 1)
+                    .map(pin);
                 const focus = pin(request);
                 const map: ReportMap = { pins: [focus, ...others], focus_id: requestId };
                 return toolSuccess({ speech: focusSpeech(focus, others), data: { map } });
@@ -174,9 +219,33 @@ export function registerShowReportMapTool(server: McpServer, deps: ToolDeps, cal
             if ("speech" in location) {
                 return toolFailure(location.speech);
             }
-            const pins = (await openReportsAround(deps, location.point)).slice(0, MAX_PINS).map(pin);
             const address = location.isHome ? "your home" : location.address;
-            const map: ReportMap = { place: placeFor(location.address, location.point), pins };
+            const place = placeFor(location.address, location.point);
+            const days = args.recent_days ?? undefined;
+            if (days !== undefined) {
+                const since = deps.now().getTime() - days * DAY_MS;
+                const filedSince = (request: ServiceRequest) => Date.parse(request.requested_datetime) >= since;
+                const fixedSince = (request: ServiceRequest) =>
+                    request.status === "closed" &&
+                    Date.parse(request.updated_datetime ?? request.requested_datetime) >= since;
+                const recent = (await reportsAround(deps, location.point, (r) => filedSince(r) || fixedSince(r)))
+                    .slice(0, MAX_PINS)
+                    .map((request) => ({ request, pin: pin(request) }));
+                const fresh = recent.filter(({ request }) => filedSince(request) && !fixedSince(request));
+                const fixed = recent.filter(({ request }) => fixedSince(request));
+                const map: ReportMap = { place, pins: recent.map((entry) => entry.pin) };
+                return toolSuccess({
+                    speech: recentSpeech(
+                        address,
+                        days,
+                        fresh.map((entry) => entry.pin),
+                        fixed.map((entry) => entry.pin),
+                    ),
+                    data: { map },
+                });
+            }
+            const pins = (await reportsAround(deps, location.point)).slice(0, MAX_PINS).map(pin);
+            const map: ReportMap = { place, pins };
             return toolSuccess({ speech: aroundSpeech(address, pins), data: { map } });
         },
     );

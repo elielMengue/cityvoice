@@ -4,7 +4,7 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build:web": "bun build web/app.ts --outfile public/app.js --target browser --minify",
+        "build:web": "bun build web/main.ts --outfile public/app.js --target browser --minify",
         "dev": "bun run build:web && wrangler dev --port 8791 --env-file .env.local",
         "deploy": "bun run build:web && wrangler deploy --env production",
         "test": "bun test",

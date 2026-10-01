@@ -38,6 +38,11 @@ describe.each([...TEST_BACKENDS])("with the %s store", (backend: TestBackend) =>
                 "daniel",
             );
             expect(answered.data["ready"]).toBe(true);
+            // The resident's own words travel with the report.
+            expect(answered.data["readback"]).toBe(
+                "a pothole, in the road, at 14th Street and U Street Northwest. " +
+                    "You also mentioned: there's a huge pothole.",
+            );
             const submitted = await app.callTool(
                 "submit_report",
                 { draft_id: draftId, user_confirmed: true },
@@ -61,7 +66,13 @@ describe.each([...TEST_BACKENDS])("with the %s store", (backend: TestBackend) =>
                     "it matters, or file a separate report?",
             );
             expect(started.data["next_step"]).toBe("support_or_new_report");
-            expect(started.data["draft"]).toBeUndefined();
+
+            // "File a separate report."
+            const draft = started.data["draft"] as Record<string, unknown>;
+            const separate = await app.callTool("draft_report", { draft_id: draft["draft_id"] }, "maria");
+            expect(separate.isError).toBe(false);
+            expect(separate.data["draft_id"]).toBe(draft["draft_id"]);
+            expect(separate.data["ready"]).toBe(false);
         });
 
         test("scenario D: an emergency stops everything, even before the place", async () => {

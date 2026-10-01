@@ -50,8 +50,9 @@ export function registerStartReportTool(server: McpServer, deps: ToolDeps, calle
                 "Start here whenever the user reports a problem. In one call it screens for emergencies, finds " +
                 "the city service and the place, checks whether neighbors already reported it, and starts a draft. " +
                 "Say the speech, then follow next_step: choose_place or choose_service means ask the user and call " +
-                "start_report again with their answer; support_or_new_report means offer support_report or a new " +
-                "draft; answer_question means pass the user's answer to draft_report with the draft_id; confirm " +
+                "start_report again with their answer; support_or_new_report means call support_report with the " +
+                "report's request_id if the user wants to add support, or draft_report with the draft_id for a " +
+                "separate report; answer_question means pass the user's answer to draft_report with the draft_id; confirm " +
                 "means wait for a clear yes before submit_report. If it returns an error telling the user to call " +
                 "911, say only that and do not file anything.",
             inputSchema: z.object({
@@ -129,6 +130,10 @@ export function registerStartReportTool(server: McpServer, deps: ToolDeps, calle
                 return answer(`${placeSpeech} ${serviceMatchSpeech(ranked)}`, { next_step: "choose_service", place });
             }
 
+            // The draft is started even when neighbors already reported it, so
+            // "a separate report" goes straight on with its draft_id.
+            const saved = await saveDraft(deps, { residentId: found.resident.id, location, service, description });
+            const draft = describeDraft(saved, service);
             const reports = await findNearbyReports(deps, caller, location, service);
             const reportsSpeech = nearbySpeech(reports, service, location);
             if (reports.length > 0) {
@@ -136,12 +141,10 @@ export function registerStartReportTool(server: McpServer, deps: ToolDeps, calle
                     next_step: "support_or_new_report",
                     place,
                     reports,
+                    draft,
                 });
             }
 
-            // Nobody reported it yet: start the draft so the next answer can go straight into it.
-            const saved = await saveDraft(deps, { residentId: found.resident.id, location, service });
-            const draft = describeDraft(saved, service);
             return answer(`${placeSpeech} ${reportsSpeech} ${saved.speech}`, {
                 next_step: draft.ready ? "confirm" : "answer_question",
                 place,

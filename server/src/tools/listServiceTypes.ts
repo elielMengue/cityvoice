@@ -23,7 +23,7 @@ export function registerListServiceTypesTool(server: McpServer, deps: ToolDeps):
         {
             title: "List service types",
             description:
-                "Finds which city service fits the problem the user describes, for example pothole, streetlight out, " +
+                "Finds which city service fits the problem the user describes, for example pothole, broken streetlight, " +
                 "missed trash pickup, graffiti, illegal dumping, sidewalk damage, abandoned vehicle or tree hazard. " +
                 "start_report already does this; use this tool when the user changes what the problem is. " +
                 "Returns up to five services, best first, with the questions the city needs answered. If the " +

@@ -129,7 +129,7 @@ export function buildDemoSeed(now: Date): DemoSeed {
         {
             service_request_id: requestId(481907),
             status: "open",
-            service_name: "streetlight out",
+            service_name: "broken streetlight",
             service_code: "STREETLIGHT",
             description: "Light pole outside 1425 Columbia Road is completely dark.",
             requested_datetime: iso(ago(4)),

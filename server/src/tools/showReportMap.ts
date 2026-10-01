@@ -12,6 +12,7 @@ import { pinFor, placeFor, reportMapSchema } from "../map/reportMap";
 import type { ServiceRequest } from "../open311/types";
 import { candidatesSpeech, PLACE_NOT_FOUND_SPEECH, resolvePlace } from "../reports/place";
 import type { Resident } from "../residents/residentStore";
+import { shortPlace, spokenPlace } from "../speech/places";
 import { capitalized, countOf, joinWithAnd, numberWord, withArticle } from "../speech/speech";
 import { SHOWS_REPORT_MAP } from "../ui/reportMapResource";
 import type { Caller, ToolDeps } from "./toolContext";
@@ -93,9 +94,9 @@ function aroundSpeech(address: string, pins: readonly MapPin[]): string {
     );
 }
 
-function focusSpeech(focus: MapPin, others: readonly MapPin[]): string {
+function focusSpeech(focus: MapPin, place: string, others: readonly MapPin[]): string {
     const whose = focus.mine ? "Your" : "The";
-    const subject = `${whose} ${focus.service_name} report at ${focus.address} is ${STATUS_WORDS[focus.status]}.`;
+    const subject = `${whose} ${focus.service_name} report ${place} is ${STATUS_WORDS[focus.status]}.`;
     if (others.length === 0) {
         return `${subject} There are no other open reports within a few blocks.`;
     }
@@ -218,14 +219,17 @@ export function registerShowReportMapTool(server: McpServer, deps: ToolDeps, cal
                     .map(pin);
                 const focus = pin(request);
                 const map: ReportMap = { pins: [focus, ...others], focus_id: requestId };
-                return toolSuccess({ speech: focusSpeech(focus, others), data: { map } });
+                return toolSuccess({
+                    speech: focusSpeech(focus, spokenPlace(focus.address, resident.homeAddress), others),
+                    data: { map },
+                });
             }
 
             const location = await placeToMap(deps, caller, resident, args);
             if ("speech" in location) {
                 return toolFailure(location.speech);
             }
-            const address = location.isHome ? "your home" : location.address;
+            const address = location.isHome ? "your home" : shortPlace(location.address);
             const place = placeFor(location.address, location.point);
             const days = args.recent_days ?? undefined;
             if (days !== undefined) {

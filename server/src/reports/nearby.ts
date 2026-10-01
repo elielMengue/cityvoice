@@ -1,3 +1,4 @@
+import { findServiceType } from "../catalog/serviceCatalog";
 import type { ServiceType } from "../catalog/serviceCatalog";
 import { distanceMeters } from "../geo/geo";
 import type { ResolvedLocation } from "../geo/locationId";
@@ -47,7 +48,7 @@ export async function findNearbyReports(
                     : await deps.residents.getReport(caller.residentId, request.service_request_id);
             return {
                 request_id: request.service_request_id,
-                service_name: request.service_name,
+                service_name: findServiceType(request.service_code)?.name ?? request.service_name,
                 address: request.address ?? location.address,
                 distance_m: Math.round(distance),
                 requested_datetime: request.requested_datetime,

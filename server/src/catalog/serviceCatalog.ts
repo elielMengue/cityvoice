@@ -50,8 +50,8 @@ export const SERVICE_TYPES: readonly ServiceType[] = [
     },
     {
         code: "STREETLIGHT",
-        name: "streetlight out",
-        pluralName: "streetlight repairs",
+        name: "broken streetlight",
+        pluralName: "broken streetlights",
         synonyms: [
             "streetlight",
             "street light",

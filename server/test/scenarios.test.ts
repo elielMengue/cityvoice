@@ -62,7 +62,7 @@ describe.each([...TEST_BACKENDS])("with the %s store", (backend: TestBackend) =>
 
             expect(started.speech).toBe(
                 "I'll use your home address, 1421 Columbia Road Northwest. Two neighbors already reported a " +
-                    "streetlight out near your home, 4 days ago. Do you want to add your support so the city sees " +
+                    "broken streetlight near your home, 4 days ago. Do you want to add your support so the city sees " +
                     "it matters, or file a separate report?",
             );
             expect(started.data["next_step"]).toBe("support_or_new_report");
@@ -345,7 +345,7 @@ describe.each([...TEST_BACKENDS])("with the %s store", (backend: TestBackend) =>
             const again = await app.callTool("find_nearby_reports", args, "maria");
 
             expect(again.speech).toBe(
-                "You already support a streetlight out report near your home. It has three neighbors behind it and it's still open.",
+                "You already support a broken streetlight report near your home. It has three neighbors behind it and it's still open.",
             );
         });
 
@@ -382,7 +382,7 @@ describe.each([...TEST_BACKENDS])("with the %s store", (backend: TestBackend) =>
                 maria,
             );
             expect(nearby.speech).toBe(
-                "Two neighbors already reported a streetlight out near your home, 4 days ago. " +
+                "Two neighbors already reported a broken streetlight near your home, 4 days ago. " +
                     "Do you want to add your support so the city sees it matters, or file a separate report?",
             );
             const [report] = nearby.data["reports"] as { request_id: string }[];
@@ -407,9 +407,9 @@ describe.each([...TEST_BACKENDS])("with the %s store", (backend: TestBackend) =>
 
             expect(outcome.speech).toBe(
                 "You have three reports. " +
-                    "The graffiti at 1100 11th Street Northwest was closed today. " +
-                    "The pothole at 900 U Street Northwest is in progress: a crew has been assigned. " +
-                    "The missed trash pickup at 612 A Street Southeast is still waiting for the city, filed 2 days ago.",
+                    "The graffiti on 11th Street was closed today. " +
+                    "The pothole on U Street is in progress: a crew has been assigned. " +
+                    "The missed trash pickup at your home is still waiting for the city, filed 2 days ago.",
             );
             const reports = outcome.data["reports"] as { status: string; lat: number }[];
             expect(reports.map((report) => report.status)).toEqual(["closed", "open", "open"]);
@@ -431,7 +431,7 @@ describe.each([...TEST_BACKENDS])("with the %s store", (backend: TestBackend) =>
             const outcome = await app.callTool("get_my_reports", {}, "maria");
 
             expect(outcome.speech).toStartWith(
-                "You have one report. The streetlight out you support at 1425 Columbia Road Northwest",
+                "You have one report. The broken streetlight you support on Columbia Road",
             );
         });
 

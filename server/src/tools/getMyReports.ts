@@ -4,8 +4,8 @@ import { z } from "zod";
 
 import { findServiceType } from "../catalog/serviceCatalog";
 import { pinFor, reportMapSchema } from "../map/reportMap";
+import { describeMyReports, spokenReport } from "../reports/myReportsSpeech";
 import type { ServiceRequest } from "../open311/types";
-import type { ReportRole } from "../residents/residentStore";
 import { ageInWords, capitalized, countOf, numberWord } from "../speech/speech";
 import { SHOWS_REPORT_MAP } from "../ui/reportMapResource";
 import type { Caller, ToolDeps } from "./toolContext";
@@ -59,14 +59,6 @@ function spokenStatus(request: ServiceRequest, now: Date): string {
         return `is in progress: ${notes.charAt(0).toLowerCase()}${notes.slice(1)}`;
     }
     return `is still waiting for the city, filed ${ageInWords(new Date(request.requested_datetime), now)}`;
-}
-
-function sentenceFor(report: { service_name: string; address: string; spoken_status: string; my_role: ReportRole }) {
-    const subject =
-        report.my_role === "supporter"
-            ? `The ${report.service_name} you support at ${report.address}`
-            : `The ${report.service_name} at ${report.address}`;
-    return `${subject} ${report.spoken_status}.`;
 }
 
 function decodeCursor(cursor: string | undefined): number | undefined {
@@ -172,10 +164,16 @@ export function registerGetMyReportsTool(server: McpServer, deps: ToolDeps, call
                 : remaining === 1
                   ? " There is one more. Want to hear it?"
                   : ` There are ${numberWord(remaining)} more. Want to hear them?`;
-            return toolSuccess({
-                speech: capitalized(`${intro}${page.map(sentenceFor).join(" ")}${more}`),
-                data,
-            });
+            const spoken = pageRequests.map((request) =>
+                spokenReport(
+                    request,
+                    nameOf(request),
+                    roleOf.get(request.service_request_id) === "supporter",
+                    found.resident.homeAddress,
+                    now,
+                ),
+            );
+            return toolSuccess({ speech: capitalized(`${intro}${describeMyReports(spoken)}${more}`), data });
         },
     );
 }

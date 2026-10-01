@@ -54,7 +54,7 @@ describe.each([...TEST_BACKENDS])("show_report_map (%s)", (backend) => {
 
         expect(outcome.speech).toBe(
             "Around your home, there are four open reports within a few blocks: a missed trash pickup report, " +
-                "two streetlight out reports, and a pothole report. One of them is yours.",
+                "two broken streetlight reports, and a pothole report. One of them is yours.",
         );
         const map = outcome.data["map"] as ReportMap;
         expect(map.place?.address).toBe("612 A Street Southeast");
@@ -68,8 +68,7 @@ describe.each([...TEST_BACKENDS])("show_report_map (%s)", (backend) => {
         const outcome = await app.callTool("show_report_map", { request_id: "26-00482233" }, "aisha");
 
         expect(outcome.speech).toBe(
-            "Your pothole report at 900 U Street Northwest is in progress. " +
-                "There are no other open reports within a few blocks.",
+            "Your pothole report on U Street is in progress. " + "There are no other open reports within a few blocks.",
         );
         const map = outcome.data["map"] as ReportMap;
         expect(map.focus_id).toBe("26-00482233");
@@ -83,8 +82,7 @@ describe.each([...TEST_BACKENDS])("show_report_map (%s)", (backend) => {
         const outcome = await app.callTool("show_report_map", { location_id: place.data["location_id"] }, "daniel");
 
         expect(outcome.speech).toBe(
-            "Around 14th Street and U Street Northwest, there is one open report within a few blocks: " +
-                "a pothole report.",
+            "Around 14th and U, there is one open report within a few blocks: a pothole report.",
         );
     });
 
@@ -102,7 +100,7 @@ describe.each([...TEST_BACKENDS])("show_report_map (%s)", (backend) => {
 
         const outcome = await app.callTool("show_report_map", { spoken_place: "14th and U" }, "daniel");
 
-        expect(outcome.speech).toStartWith("Around 14th Street and U Street Northwest,");
+        expect(outcome.speech).toStartWith("Around 14th and U,");
         expect((outcome.data["map"] as ReportMap).place?.address).toBe("14th Street and U Street Northwest");
     });
 

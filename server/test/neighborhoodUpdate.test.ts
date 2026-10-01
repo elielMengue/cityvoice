@@ -21,7 +21,7 @@ describe("neighborhood_update", () => {
 
         expect(outcome.speech).toBe(
             "This week around your home, two reports were filed: " +
-                "a missed trash pickup report and a streetlight out report.",
+                "a missed trash pickup report and a broken streetlight report.",
         );
     });
 

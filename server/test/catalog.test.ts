@@ -105,8 +105,15 @@ describe("detectEmergency", () => {
         expect(detectEmergency(description)).toBeUndefined();
     });
 
-    test("someone who already called 911 is not told to call it again", () => {
-        expect(detectEmergency("I called 911 now because I'm in danger")).toBe(
+    test.each([
+        "I called 911 now because I'm in danger",
+        "I just called the 911",
+        "I've called 9-1-1",
+        "we called nine one one",
+        "I dialed 911 already",
+        "911 are on the way",
+    ])("someone who already called 911 is not told to call it again: %s", (description) => {
+        expect(detectEmergency(description)).toBe(
             "You did the right thing calling 911. Stay safe and follow what they tell you. " +
                 "When it's over, I can help you report anything the city should fix.",
         );

@@ -22,10 +22,15 @@ const RULES: readonly EmergencyRule[] = [
         phrases: [
             "called 911",
             "calling 911",
+            "dialed 911",
+            "phoned 911",
             "on the phone with 911",
             "911 is coming",
             "911 is on the way",
+            "911 are coming",
+            "911 are on the way",
             "called the police",
+            "called the cops",
             "called an ambulance",
             "called the fire department",
             "help is on the way",
@@ -133,12 +138,20 @@ const HARMLESS_PHRASES: readonly string[] = [
     "emergency lane",
 ];
 
+/**
+ * Lower case, words only, with a space at each end so phrases match whole
+ * words. Speech recognition writes 911 in several ways, and people say "the
+ * 911", so all of them become plain "911".
+ */
 function words(text: string): string {
     return ` ${text
         .toLowerCase()
         .replace(/[^a-z0-9\s]/g, " ")
         .replace(/\s+/g, " ")
-        .trim()} `;
+        .trim()} `
+        .replaceAll(" nine one one ", " 911 ")
+        .replaceAll(" 9 1 1 ", " 911 ")
+        .replaceAll(" the 911 ", " 911 ");
 }
 
 /** Returns what Alexa should say if the description sounds like an emergency, otherwise undefined. */

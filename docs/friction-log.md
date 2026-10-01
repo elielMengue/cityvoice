@@ -260,3 +260,27 @@ Time lost is our own rough estimate.
   the supported way, and a callback that reports a failed link on the page
   instead of crashing.
 - **Time lost:** 30 minutes.
+
+### Workers AI ran out of free neurons, and the fallback hid it
+
+- **Product:** Workers AI, free plan
+- **Happened:** turns got slower, from about 3 seconds to 10 or more. Nothing
+  failed, because the simulator fell back to Gemini as designed. Only after we
+  logged the reason did we see it: "4006: you have used up your daily free
+  allocation of 10,000 neurons". A day of testing with Mistral Small 3.1 used
+  it up.
+- **Workaround:** the simulator now logs every fallback with its reason. The
+  quota resets at midnight UTC; Workers Paid would lift it.
+- **Time lost:** 20 minutes.
+
+### The map tiles we picked started asking for an API key
+
+- **Product:** CARTO basemaps, used inside an MCP App
+- **Tried:** CARTO's light and dark raster tiles, which many examples still
+  load without a key.
+- **Happened:** every tile came back as an "API key required" image. The MCP
+  App, its sandbox and its Content Security Policy all worked; only the tiles
+  were wrong, which a screenshot showed at once.
+- **Workaround:** OpenStreetMap's own tiles, which need no key and allow light
+  use with attribution. The dark theme inverts them with a CSS filter.
+- **Time lost:** 15 minutes.

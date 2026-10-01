@@ -8,10 +8,12 @@ import { registerGetMyReportsTool } from "./tools/getMyReports";
 import { registerListServiceTypesTool } from "./tools/listServiceTypes";
 import { registerPingTool } from "./tools/ping";
 import { registerResolveLocationTool } from "./tools/resolveLocation";
+import { registerShowReportMapTool } from "./tools/showReportMap";
 import { registerStartReportTool } from "./tools/startReport";
 import { registerSubmitReportTool } from "./tools/submitReport";
 import { registerSupportReportTool } from "./tools/supportReport";
 import type { Caller, ToolDeps } from "./tools/toolContext";
+import { registerReportMapResource } from "./ui/reportMapResource";
 
 const SERVER_NAME = "cityvoice";
 const SERVER_VERSION = "0.2.0";
@@ -25,7 +27,7 @@ const INSTRUCTIONS =
     "the user's words. It screens for emergencies: if it says to call 911, say only that and stop. Otherwise " +
     "follow its next_step: support_report for a neighbor's report, draft_report for the user's answers, and " +
     "submit_report only after the user says yes. The other tools are for corrections. To follow up, " +
-    "get_my_reports. Each tool returns a speech field: say it as it is.";
+    "get_my_reports. To show reports on a screen, show_report_map. Each tool returns a speech field: say it as it is.";
 
 export type McpFetch = (request: Request, authInfo: AuthInfo | undefined) => Promise<Response>;
 
@@ -47,6 +49,8 @@ function createMcpServer(deps: ToolDeps, caller: Caller): McpServer {
     registerSubmitReportTool(server, deps, caller);
     registerSupportReportTool(server, deps, caller);
     registerGetMyReportsTool(server, deps, caller);
+    registerShowReportMapTool(server, deps, caller);
+    registerReportMapResource(server);
     return server;
 }
 

@@ -1,0 +1,168 @@
+/* Sizes and colors follow the Alexa+ visual foundations: a 768 x 480 base
+   canvas, 8 to 16 px radii, and both light and dark themes. */
+
+:root {
+    --surface: #ffffff;
+    --text: #1f2933;
+    --muted: #5f6b7a;
+    --open: #2563eb;
+    --progress: #d97706;
+    --closed: #16a34a;
+    --place: #0a73c9;
+    color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+    --surface: #14181e;
+    --text: #f2f4f7;
+    --muted: #aab4c0;
+    --open: #60a5fa;
+    --progress: #fbbf24;
+    --closed: #4ade80;
+    --place: #7cc4f8;
+    color-scheme: dark;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    background: var(--surface);
+    color: var(--text);
+    font:
+        16px/1.4 -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        "Noto Sans",
+        sans-serif;
+}
+
+/* Wider than tall, so Alexa renders it as a block. */
+.map {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    border-radius: 16px;
+}
+
+.tiles img {
+    position: absolute;
+    width: 256px;
+    height: 256px;
+    user-select: none;
+}
+
+/* Softer streets, so the pins stand out from across the room. */
+.tiles {
+    filter: saturate(0.45) brightness(1.04);
+}
+
+/* OpenStreetMap has no dark style, so the dark theme turns the light one around. */
+:root[data-theme="dark"] .tiles {
+    filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
+}
+
+.place {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    margin: -22px 0 0 -22px;
+    border: 3px solid var(--place);
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--place) 15%, transparent);
+}
+
+.pin {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    margin: -11px 0 0 -11px;
+    border: 3px solid var(--surface);
+    border-radius: 50%;
+    background: var(--open);
+    box-shadow: 0 2px 6px rgb(0 0 0 / 35%);
+}
+
+.pin[data-status="progress"] {
+    background: var(--progress);
+}
+
+.pin[data-status="closed"] {
+    background: var(--closed);
+}
+
+/* The resident's own reports wear a ring in the text color. */
+.pin[data-mine="true"] {
+    outline: 3px solid var(--text);
+}
+
+.pin[data-focus="true"] {
+    width: 34px;
+    height: 34px;
+    margin: -17px 0 0 -17px;
+}
+
+.legend {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    display: grid;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    box-shadow: 0 2px 10px rgb(0 0 0 / 15%);
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.legend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.legend-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--open);
+}
+
+.legend-dot[data-status="progress"] {
+    background: var(--progress);
+}
+
+.legend-dot[data-status="closed"] {
+    background: var(--closed);
+}
+
+.legend-mine {
+    background: transparent;
+    outline: 3px solid var(--text);
+    outline-offset: -3px;
+}
+
+.attribution {
+    position: absolute;
+    right: 6px;
+    bottom: 4px;
+    padding: 0 4px;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--surface) 80%, transparent);
+    color: var(--muted);
+    font-size: 10px;
+}
+
+.empty {
+    display: grid;
+    place-items: center;
+    height: 100%;
+    margin: 0;
+    color: var(--muted);
+    font-size: 20px;
+}

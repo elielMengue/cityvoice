@@ -11,6 +11,15 @@ COPY package.json bun.lock ./
 COPY server/package.json server/
 RUN bun install --frozen-lockfile --production --filter @cityvoice/server
 
+# The report map page is built from ui/ into src/ui/generated, with dev tools.
+FROM oven/bun:1.3.9-slim AS ui
+WORKDIR /app
+COPY package.json bun.lock ./
+COPY server/package.json server/
+RUN bun install --frozen-lockfile --filter @cityvoice/server
+COPY server server
+RUN cd server && bun run build:ui
+
 FROM oven/bun:1.3.9-slim
 WORKDIR /app
 ENV NODE_ENV=production PORT=8080
@@ -18,6 +27,7 @@ COPY --from=deps /app/node_modules node_modules
 COPY --from=deps /app/server/node_modules server/node_modules
 COPY server/package.json server/
 COPY server/src server/src
+COPY --from=ui /app/server/src/ui/generated server/src/ui/generated
 USER bun
 EXPOSE 8080
 CMD ["bun", "server/src/index.ts"]

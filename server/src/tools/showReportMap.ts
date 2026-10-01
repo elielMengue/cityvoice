@@ -1,0 +1,183 @@
+import { registerAppTool } from "@modelcontextprotocol/ext-apps/server";
+import type { McpServer } from "@modelcontextprotocol/server";
+import { z } from "zod";
+
+import { findServiceType } from "../catalog/serviceCatalog";
+import type { GeoPoint } from "../geo/geo";
+import { distanceMeters } from "../geo/geo";
+import type { ResolvedLocation } from "../geo/locationId";
+import { decodeLocationId } from "../geo/locationId";
+import type { MapPin, MapStatus, ReportMap } from "../map/reportMap";
+import { pinFor, placeFor, reportMapSchema } from "../map/reportMap";
+import type { ServiceRequest } from "../open311/types";
+import { candidatesSpeech, PLACE_NOT_FOUND_SPEECH, resolvePlace } from "../reports/place";
+import type { Resident } from "../residents/residentStore";
+import { capitalized, countOf, joinWithAnd, withArticle } from "../speech/speech";
+import { SHOWS_REPORT_MAP } from "../ui/reportMapResource";
+import type { Caller, ToolDeps } from "./toolContext";
+import { NOT_LINKED_SPEECH, resolveResident } from "./toolContext";
+import { toolFailure, toolSuccess } from "./toolResult";
+
+const SHOW_REPORT_MAP_TOOL = "show_report_map";
+
+/** A few blocks: what a resident thinks of as "around here". */
+export const MAP_RADIUS_METERS = 300;
+/** More pins than this stop being readable from across the room, and too long to say. */
+export const MAX_PINS = 8;
+
+const outputSchema = z.object({
+    speech: z.string(),
+    data: z.object({ map: reportMapSchema }),
+});
+
+const STATUS_WORDS: Record<MapStatus, string> = {
+    open: "still waiting for the city",
+    progress: "in progress",
+    closed: "closed",
+};
+
+function serviceName(request: ServiceRequest): string {
+    return findServiceType(request.service_code)?.name ?? request.service_name;
+}
+
+/** Open reports within the radius, closest first. */
+async function openReportsAround(deps: ToolDeps, point: GeoPoint, excluding?: string): Promise<ServiceRequest[]> {
+    const open = await deps.open311.findRequests({ status: "open" });
+    return open
+        .filter((request) => request.service_request_id !== excluding)
+        .map((request) => ({ request, distance: distanceMeters(point, { lat: request.lat, lng: request.long }) }))
+        .filter(({ distance }) => distance <= MAP_RADIUS_METERS)
+        .sort((a, b) => a.distance - b.distance)
+        .map(({ request }) => request);
+}
+
+/** "two pothole reports and a graffiti report". */
+function describePins(pins: readonly MapPin[]): string {
+    const counts = new Map<string, number>();
+    for (const pin of pins) {
+        counts.set(pin.service_name, (counts.get(pin.service_name) ?? 0) + 1);
+    }
+    return joinWithAnd(
+        [...counts].map(([name, count]) =>
+            count === 1 ? withArticle(`${name} report`) : countOf(count, `${name} report`),
+        ),
+    );
+}
+
+function aroundSpeech(address: string, pins: readonly MapPin[]): string {
+    if (pins.length === 0) {
+        return `Here's the map around ${address}. I don't see any open reports within a few blocks.`;
+    }
+    const yours = pins.filter((pin) => pin.mine).length;
+    const mine =
+        yours === 0
+            ? ""
+            : yours === 1
+              ? " One of them is yours."
+              : ` ${capitalized(countOf(yours, "is", "are"))} yours.`;
+    return (
+        `Here's the map around ${address}. ` +
+        `It shows ${countOf(pins.length, "open report")} within a few blocks: ${describePins(pins)}.${mine}`
+    );
+}
+
+function focusSpeech(focus: MapPin, others: readonly MapPin[]): string {
+    const whose = focus.mine ? "your" : "the";
+    const subject = `Here's ${whose} ${focus.service_name} report at ${focus.address} on the map. It's ${STATUS_WORDS[focus.status]}.`;
+    if (others.length === 0) {
+        return `${subject} There are no other open reports within a few blocks.`;
+    }
+    const verb = others.length === 1 ? "is" : "are";
+    return `${subject} ${capitalized(countOf(others.length, "other open report"))} ${verb} nearby: ${describePins(others)}.`;
+}
+
+const WHICH_PLACE_SPEECH = "Which place should I show? You can say an intersection, like 14th and U.";
+
+/** The place to map, or what to say instead. Home when the resident named nothing. */
+async function placeToMap(
+    deps: ToolDeps,
+    caller: Caller,
+    resident: Resident,
+    args: { readonly location_id?: string | null; readonly spoken_place?: string | null },
+): Promise<ResolvedLocation | { readonly speech: string }> {
+    if (args.location_id !== undefined && args.location_id !== null) {
+        return decodeLocationId(args.location_id) ?? { speech: WHICH_PLACE_SPEECH };
+    }
+    if (args.spoken_place === undefined || args.spoken_place === null) {
+        return { address: resident.homeAddress, point: resident.homePoint, isHome: true };
+    }
+    const outcome = await resolvePlace(deps, caller, args.spoken_place);
+    switch (outcome.kind) {
+        case "found":
+            return outcome.location;
+        case "ambiguous":
+            return { speech: candidatesSpeech(outcome.candidates) };
+        case "not_found":
+            return { speech: PLACE_NOT_FOUND_SPEECH };
+        case "not_linked":
+            return { speech: NOT_LINKED_SPEECH };
+    }
+}
+
+export function registerShowReportMapTool(server: McpServer, deps: ToolDeps, caller: Caller): void {
+    registerAppTool(
+        server,
+        SHOW_REPORT_MAP_TOOL,
+        {
+            title: "Show report map",
+            description:
+                "Shows a map of city reports on devices with a screen, and says what it shows. Use it when the user " +
+                'asks to see reports: "show me the map", "what\'s been reported around here?", "show me my ' +
+                "pothole\". Pass request_id to center on one report, or the place: spoken_place in the user's " +
+                "words, or a location_id you already have. With none of them, the map is around the user's home.",
+            inputSchema: z.object({
+                location_id: z
+                    .string()
+                    .nullish()
+                    .describe("A location_id from start_report or resolve_location, to map that place."),
+                spoken_place: z
+                    .string()
+                    .min(1)
+                    .max(200)
+                    .nullish()
+                    .describe('The place exactly as the user said it, like "14th and U" or "my street".'),
+                request_id: z.string().nullish().describe("A request_id, to center the map on that report."),
+            }),
+            outputSchema,
+            annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+            _meta: SHOWS_REPORT_MAP,
+        },
+        async (args) => {
+            const found = await resolveResident(deps, caller);
+            if ("failure" in found) {
+                return found.failure;
+            }
+            const { resident } = found;
+            const mine = new Set((await deps.residents.listReports(resident.id)).map((link) => link.requestId));
+            const pin = (request: ServiceRequest) =>
+                pinFor(request, serviceName(request), mine.has(request.service_request_id));
+
+            const requestId = args.request_id ?? undefined;
+            if (requestId !== undefined) {
+                const [request] = await deps.open311.getRequests([requestId]);
+                if (request === undefined) {
+                    return toolFailure("I couldn't find that report anymore.");
+                }
+                const point = { lat: request.lat, lng: request.long };
+                const others = (await openReportsAround(deps, point, requestId)).slice(0, MAX_PINS - 1).map(pin);
+                const focus = pin(request);
+                const map: ReportMap = { pins: [focus, ...others], focus_id: requestId };
+                return toolSuccess({ speech: focusSpeech(focus, others), data: { map } });
+            }
+
+            const location = await placeToMap(deps, caller, resident, args);
+            if ("speech" in location) {
+                return toolFailure(location.speech);
+            }
+            const pins = (await openReportsAround(deps, location.point)).slice(0, MAX_PINS).map(pin);
+            const address = location.isHome ? "your home" : location.address;
+            const map: ReportMap = { place: placeFor(location.address, location.point), pins };
+            return toolSuccess({ speech: aroundSpeech(address, pins), data: { map } });
+        },
+    );
+}

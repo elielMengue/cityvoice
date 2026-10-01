@@ -3,3 +3,5 @@ bun.lock
 cdk.out
 .wrangler
 simulator/public/app.js
+server/src/ui/generated
+simulator/public/chunks

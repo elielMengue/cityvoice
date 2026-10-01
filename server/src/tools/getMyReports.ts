@@ -1,10 +1,13 @@
+import { registerAppTool } from "@modelcontextprotocol/ext-apps/server";
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 
 import { findServiceType } from "../catalog/serviceCatalog";
+import { pinFor, reportMapSchema } from "../map/reportMap";
 import type { ServiceRequest } from "../open311/types";
 import type { ReportRole } from "../residents/residentStore";
 import { ageInWords, capitalized, countOf, numberWord } from "../speech/speech";
+import { SHOWS_REPORT_MAP } from "../ui/reportMapResource";
 import type { Caller, ToolDeps } from "./toolContext";
 import { resolveResident } from "./toolContext";
 import { toolFailure, toolSuccess } from "./toolResult";
@@ -40,6 +43,8 @@ const outputSchema = z.object({
         ),
         total: z.number(),
         next_cursor: z.string().optional(),
+        /** The same reports, for screens. */
+        map: reportMapSchema,
     }),
 });
 
@@ -77,7 +82,8 @@ function matchesFilter(request: ServiceRequest, filter: StatusFilter): boolean {
 }
 
 export function registerGetMyReportsTool(server: McpServer, deps: ToolDeps, caller: Caller): void {
-    server.registerTool(
+    registerAppTool(
+        server,
         GET_MY_REPORTS_TOOL,
         {
             title: "Get my reports",
@@ -100,6 +106,7 @@ export function registerGetMyReportsTool(server: McpServer, deps: ToolDeps, call
             }),
             outputSchema,
             annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+            _meta: SHOWS_REPORT_MAP,
         },
         async (args) => {
             const status = args.status ?? "all";
@@ -125,9 +132,12 @@ export function registerGetMyReportsTool(server: McpServer, deps: ToolDeps, call
                         a.updated_datetime ?? a.requested_datetime,
                     ),
                 );
-            const page = matching.slice(offset, offset + REPORTS_PER_PAGE).map((request) => ({
+            const pageRequests = matching.slice(offset, offset + REPORTS_PER_PAGE);
+            const nameOf = (request: ServiceRequest) =>
+                findServiceType(request.service_code)?.name ?? request.service_name;
+            const page = pageRequests.map((request) => ({
                 request_id: request.service_request_id,
-                service_name: findServiceType(request.service_code)?.name ?? request.service_name,
+                service_name: nameOf(request),
                 address: request.address ?? "an unknown address",
                 status: request.status,
                 spoken_status: spokenStatus(request, now),
@@ -144,6 +154,7 @@ export function registerGetMyReportsTool(server: McpServer, deps: ToolDeps, call
                 reports: page,
                 total: matching.length,
                 ...(hasMore ? { next_cursor: String(nextOffset) } : {}),
+                map: { pins: pageRequests.map((request) => pinFor(request, nameOf(request), true)) },
             };
 
             const kind = status === "all" ? "report" : `${status} report`;

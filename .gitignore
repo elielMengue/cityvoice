@@ -8,3 +8,5 @@ cdk.out/
 .DS_Store
 .wrangler/
 simulator/public/app.js
+server/src/ui/generated/
+simulator/public/chunks/

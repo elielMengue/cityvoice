@@ -177,8 +177,8 @@ describe.each([...TEST_BACKENDS])("with the %s store", (backend: TestBackend) =>
             );
             expect(completed.data["ready"]).toBe(true);
             expect(completed.speech).toBe(
-                "Here's your report: a pothole, in the road, at 14th Street and U Street Northwest. " +
-                    "Details: huge, right lane. Should I send it to the city?",
+                "So that's a pothole, in the road, at 14th Street and U Street Northwest. " +
+                    "You also mentioned: huge, right lane. Should I send it to the city?",
             );
 
             // "Yes."
@@ -274,7 +274,7 @@ describe.each([...TEST_BACKENDS])("with the %s store", (backend: TestBackend) =>
 
             expect(corrected.data["ready"]).toBe(true);
             expect(corrected.data["readback"]).toBe(
-                "a pothole, in the road, at 14th Street and T Street Northwest. Details: huge pothole.",
+                "a pothole, in the road, at 14th Street and T Street Northwest. You also mentioned: huge pothole.",
             );
         });
 

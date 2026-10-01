@@ -25,7 +25,9 @@ function buildReadback(draft: Draft, service: ServiceType): string {
         return [option?.phrase ?? answer];
     });
     const summary = [withArticle(service.name), ...answerPhrases].join(", ");
-    const details = draft.description.trim().length > 0 ? ` Details: ${draft.description.trim()}.` : "";
+    // The resident's own words, so the city gets them as they were said.
+    const note = draft.description.trim().replace(/[.!?]+$/, "");
+    const details = note.length > 0 ? ` You also mentioned: ${note}.` : "";
     return `${summary}, at ${draft.location.address}.${details}`;
 }
 
@@ -91,7 +93,7 @@ export async function saveDraft(deps: ToolDeps, change: DraftChange): Promise<Sa
     const [next] = missing;
     let speech: string;
     if (next === undefined) {
-        speech = `Here's your report: ${readback} Should I send it to the city?`;
+        speech = `So that's ${readback} Should I send it to the city?`;
     } else if (rejected.some((attribute) => attribute.code === next.code)) {
         speech = `Sorry, I didn't catch that. ${next.question}`;
     } else {

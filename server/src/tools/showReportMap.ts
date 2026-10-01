@@ -12,7 +12,7 @@ import { pinFor, placeFor, reportMapSchema } from "../map/reportMap";
 import type { ServiceRequest } from "../open311/types";
 import { candidatesSpeech, PLACE_NOT_FOUND_SPEECH, resolvePlace } from "../reports/place";
 import type { Resident } from "../residents/residentStore";
-import { capitalized, countOf, joinWithAnd, withArticle } from "../speech/speech";
+import { capitalized, countOf, joinWithAnd, numberWord, withArticle } from "../speech/speech";
 import { SHOWS_REPORT_MAP } from "../ui/reportMapResource";
 import type { Caller, ToolDeps } from "./toolContext";
 import { NOT_LINKED_SPEECH, resolveResident } from "./toolContext";
@@ -72,49 +72,55 @@ function describePins(pins: readonly MapPin[]): string {
     );
 }
 
+// The sentences stand on their own: on a device without a screen, they are
+// the whole answer, so none of them mentions the map.
+
+/** "was", "were". */
+function was(count: number): string {
+    return count === 1 ? "was" : "were";
+}
+
 function aroundSpeech(address: string, pins: readonly MapPin[]): string {
     if (pins.length === 0) {
-        return `Here's the map around ${address}. I don't see any open reports within a few blocks.`;
+        return `I don't see any open reports within a few blocks of ${address}.`;
     }
     const yours = pins.filter((pin) => pin.mine).length;
     const mine =
-        yours === 0
-            ? ""
-            : yours === 1
-              ? " One of them is yours."
-              : ` ${capitalized(countOf(yours, "is", "are"))} yours.`;
+        yours === 0 ? "" : yours === 1 ? " One of them is yours." : ` ${capitalized(numberWord(yours))} are yours.`;
     return (
-        `Here's the map around ${address}. ` +
-        `It shows ${countOf(pins.length, "open report")} within a few blocks: ${describePins(pins)}.${mine}`
+        `Around ${address}, there ${pins.length === 1 ? "is" : "are"} ` +
+        `${countOf(pins.length, "open report")} within a few blocks: ${describePins(pins)}.${mine}`
     );
 }
 
 function focusSpeech(focus: MapPin, others: readonly MapPin[]): string {
-    const whose = focus.mine ? "your" : "the";
-    const subject = `Here's ${whose} ${focus.service_name} report at ${focus.address} on the map. It's ${STATUS_WORDS[focus.status]}.`;
+    const whose = focus.mine ? "Your" : "The";
+    const subject = `${whose} ${focus.service_name} report at ${focus.address} is ${STATUS_WORDS[focus.status]}.`;
     if (others.length === 0) {
         return `${subject} There are no other open reports within a few blocks.`;
     }
-    const verb = others.length === 1 ? "is" : "are";
-    return `${subject} ${capitalized(countOf(others.length, "other open report"))} ${verb} nearby: ${describePins(others)}.`;
+    return (
+        `${subject} ${capitalized(countOf(others.length, "other open report"))} ` +
+        `${others.length === 1 ? "is" : "are"} nearby: ${describePins(others)}.`
+    );
 }
 
-/** "Here's what's new around your home this week. Two new reports: ... One was fixed: ..." */
+/** "This week around your home, two reports were filed: ... One report was fixed: ..." */
 function recentSpeech(address: string, days: number, fresh: readonly MapPin[], fixed: readonly MapPin[]): string {
     const period = days === 7 ? "this week" : days === 1 ? "since yesterday" : `in the last ${days} days`;
     if (fresh.length === 0 && fixed.length === 0) {
-        return `Nothing new around ${address} ${period}. No reports were filed or fixed within a few blocks.`;
+        return `Nothing changed around ${address} ${period}: no reports were filed or fixed within a few blocks.`;
     }
+    const lead = `${capitalized(period)} around ${address}`;
     const filed =
         fresh.length === 0
-            ? "No new reports."
-            : `${capitalized(countOf(fresh.length, "new report"))}: ${describePins(fresh)}.`;
+            ? `${lead}, no new reports were filed.`
+            : `${lead}, ${countOf(fresh.length, "report")} ${was(fresh.length)} filed: ${describePins(fresh)}.`;
     const closed =
         fixed.length === 0
             ? ""
-            : ` ${capitalized(countOf(fixed.length, "report"))} ${fixed.length === 1 ? "was" : "were"} fixed: ` +
-              `${describePins(fixed)}.`;
-    return `Here's what's new around ${address} ${period}. ${filed}${closed}`;
+            : ` ${capitalized(countOf(fixed.length, "report"))} ${was(fixed.length)} fixed: ${describePins(fixed)}.`;
+    return `${filed}${closed}`;
 }
 
 const WHICH_PLACE_SPEECH = "Which place should I show? You can say an intersection, like 14th and U.";

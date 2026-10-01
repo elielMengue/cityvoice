@@ -20,8 +20,8 @@ describe("neighborhood_update", () => {
         const outcome = await app.callTool("show_report_map", { recent_days: 7 }, "aisha");
 
         expect(outcome.speech).toBe(
-            "Here's what's new around your home this week. " +
-                "Two new reports: a missed trash pickup report and a streetlight out report.",
+            "This week around your home, two reports were filed: " +
+                "a missed trash pickup report and a streetlight out report.",
         );
     });
 

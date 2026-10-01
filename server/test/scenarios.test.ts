@@ -271,6 +271,22 @@ describe.each([...TEST_BACKENDS])("with the %s store", (backend: TestBackend) =>
             expect(potholes.some((request) => request.description === "huge pothole")).toBe(false);
         });
 
+        test("a yes written as a string still counts, and a no as a string still refuses", async () => {
+            const app = createTestApp();
+            const draftId = await readyPotholeDraft(app);
+
+            const refused = await app.callTool(
+                "submit_report",
+                { draft_id: draftId, user_confirmed: "false" },
+                "daniel",
+            );
+            const sent = await app.callTool("submit_report", { draft_id: draftId, user_confirmed: "true" }, "daniel");
+
+            expect(refused.isError).toBe(true);
+            expect(sent.isError).toBe(false);
+            expect(sent.speech).toStartWith("Done.");
+        });
+
         test("a correction of the place keeps the answers already given", async () => {
             const app = createTestApp();
             const draftId = await readyPotholeDraft(app);

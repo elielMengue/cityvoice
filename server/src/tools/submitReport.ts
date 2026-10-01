@@ -31,8 +31,9 @@ export function registerSubmitReportTool(server: McpServer, deps: ToolDeps, call
                 "draft_id is safe: it returns the same request instead of filing a duplicate.",
             inputSchema: z.object({
                 draft_id: z.string().describe("The draft_id returned by draft_report."),
+                // Some models send "true" as a string; it means the same thing.
                 user_confirmed: z
-                    .boolean()
+                    .union([z.boolean(), z.enum(["true", "false"]).transform((value) => value === "true")])
                     .describe("True only if the user explicitly said yes, send it, go ahead or confirm."),
             }),
             outputSchema,

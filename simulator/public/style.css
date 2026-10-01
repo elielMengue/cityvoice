@@ -160,10 +160,13 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 1.5rem;
     max-width: 46rem;
+    /* Centred in what is left of the window under the top bar. */
+    min-height: calc(100vh - 5.5rem);
     margin: 0 auto;
-    padding: clamp(2rem, 12vh, 7rem) 1rem 3rem;
+    padding: 1.5rem 1rem 4rem;
     text-align: center;
 }
 
@@ -263,8 +266,8 @@ body {
     position: relative;
     display: grid;
     place-items: center;
-    width: 88px;
-    height: 88px;
+    width: 72px;
+    height: 72px;
     border: none;
     border-radius: 50%;
     background: linear-gradient(145deg, #1f9bf0, #0a5fb5);
@@ -274,8 +277,8 @@ body {
 }
 
 .mic svg {
-    width: 36px;
-    height: 36px;
+    width: 30px;
+    height: 30px;
     fill: currentColor;
 }
 
@@ -404,28 +407,15 @@ body {
     fill: currentColor;
 }
 
-/* ---------- Examples ---------- */
+/* ---------- Example ---------- */
 
-.examples {
+.example {
+    margin: 0;
     color: var(--muted);
 }
 
-.examples-title {
-    margin: 0 0 0.25rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
-.examples ul {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-
-.examples li {
-    padding: 0.15rem 0;
+.example q {
+    color: var(--text);
 }
 
 /* ---------- Behind the scenes ---------- */

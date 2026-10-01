@@ -79,6 +79,8 @@ describe("detectEmergency", () => {
         "a power line is down on my street",
         "a man is bleeding on the corner",
         "there was a car accident at the light",
+        "I have an emergency",
+        "please call an ambulance",
     ])("flags: %s", (description) => {
         expect(detectEmergency(description)).toContain("911");
     });
@@ -93,7 +95,17 @@ describe("detectEmergency", () => {
         "someone left a gas can on the sidewalk",
         "I got hurt tripping on the broken sidewalk last week",
         "the smoke detector sign fell off the pole",
+        "it's not an emergency, but the sidewalk is cracked",
+        "can you help me report a pothole",
+        "an emergency vehicle is parked in the bike lane",
     ])("lets through: %s", (description) => {
         expect(detectEmergency(description)).toBeUndefined();
+    });
+
+    test("an emergency without details sends to 911 and still offers to report", () => {
+        expect(detectEmergency("I have an emergency")).toBe(
+            "If anyone is in danger, please call 911 now. If it's a problem in the street, like a fallen tree " +
+                "or a broken streetlight, tell me what you see and I'll report it.",
+        );
     });
 });

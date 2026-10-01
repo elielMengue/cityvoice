@@ -83,6 +83,15 @@ const RULES: readonly EmergencyRule[] = [
         ],
         speech: "That sounds like an emergency. Please call 911 now. I haven't filed anything.",
     },
+    {
+        // The resident says it is an emergency without saying what. They may
+        // be in danger, or they may be calling a fallen tree an emergency, so
+        // Alexa sends them to 911 and leaves the door open for a report.
+        phrases: ["emergency", "an emergency", "call 911", "need an ambulance", "call an ambulance", "call the police"],
+        speech:
+            "If anyone is in danger, please call 911 now. If it's a problem in the street, like a fallen tree " +
+            "or a broken streetlight, tell me what you see and I'll report it.",
+    },
 ];
 
 // Everyday phrases that contain an emergency word but are routine reports,
@@ -94,6 +103,11 @@ const HARMLESS_PHRASES: readonly string[] = [
     "gas station",
     "smoke shop",
     "smoke detector",
+    "not an emergency",
+    "no emergency",
+    "non emergency",
+    "emergency vehicle",
+    "emergency lane",
 ];
 
 function words(text: string): string {

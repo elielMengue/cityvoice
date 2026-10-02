@@ -28,7 +28,7 @@ const CHROME_CANDIDATES = [
     "/usr/bin/chromium",
 ];
 
-async function findChrome(): Promise<string> {
+export async function findChrome(): Promise<string> {
     for (const candidate of CHROME_CANDIDATES) {
         if (candidate !== undefined && (await Bun.file(candidate).exists())) {
             return candidate;
@@ -37,7 +37,8 @@ async function findChrome(): Promise<string> {
     throw new Error("Chrome not found. Set CHROME_PATH to its executable.");
 }
 
-async function screenshot(chrome: string, url: string, width: number, height: number, output: string) {
+/** Renders a page at an exact size into a PNG, after its images and fonts have loaded. */
+export async function screenshot(chrome: string, url: string, width: number, height: number, output: string) {
     const chromeRun = Bun.spawn(
         [
             chrome,
@@ -45,6 +46,8 @@ async function screenshot(chrome: string, url: string, width: number, height: nu
             "--disable-gpu",
             "--hide-scrollbars",
             "--default-background-color=00000000",
+            // Time for web fonts and map tiles, which load after the page itself.
+            "--virtual-time-budget=10000",
             `--window-size=${width},${height}`,
             `--screenshot=${output}`,
             url,

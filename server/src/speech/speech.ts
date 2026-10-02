@@ -25,8 +25,14 @@ export function capitalized(text: string): string {
     return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-/** "a pothole", "an abandoned vehicle". */
+/** Things that are not counted one by one: "neighbors reported graffiti", never "a graffiti". */
+const UNCOUNTABLE = new Set(["graffiti", "illegal dumping", "sidewalk damage"]);
+
+/** "a pothole", "an abandoned vehicle", "graffiti". */
 export function withArticle(noun: string): string {
+    if (UNCOUNTABLE.has(noun)) {
+        return noun;
+    }
     return `${/^[aeiou]/i.test(noun) ? "an" : "a"} ${noun}`;
 }
 

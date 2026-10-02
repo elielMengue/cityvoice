@@ -24,6 +24,12 @@ describe("speech helpers", () => {
         expect(withArticle("abandoned vehicle")).toBe("an abandoned vehicle");
     });
 
+    test("things that are not counted take no article", () => {
+        expect(withArticle("graffiti")).toBe("graffiti");
+        expect(withArticle("graffiti report")).toBe("a graffiti report");
+        expect(withArticle("illegal dumping report")).toBe("an illegal dumping report");
+    });
+
     test("ages are rounded the way people talk", () => {
         const now = new Date("2026-10-15T14:00:00Z");
         const daysAgo = (days: number) => new Date(now.getTime() - days * 24 * 60 * 60 * 1000);

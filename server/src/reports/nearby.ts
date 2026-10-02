@@ -76,7 +76,7 @@ export function nearbySpeech(
     }
     if (closest.my_role === "supporter") {
         return (
-            `You already support ${withArticle(service.name)} report ${place}. ` +
+            `You already support ${withArticle(`${service.name} report`)} ${place}. ` +
             `It has ${countOf(closest.supporters, "neighbor")} behind it and it's still open.`
         );
     }

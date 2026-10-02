@@ -13,8 +13,8 @@ export function serviceMatchSpeech(ranked: readonly RankedService[]): string {
         return NO_SERVICE_SPEECH;
     }
     if (hasClearWinner(ranked)) {
-        return `That sounds like ${withArticle(first.name)} report.`;
+        return `That sounds like ${withArticle(`${first.name} report`)}.`;
     }
-    const choices = ranked.slice(0, 3).map(({ service }) => `${withArticle(service.name)} report`);
+    const choices = ranked.slice(0, 3).map(({ service }) => withArticle(`${service.name} report`));
     return `That could be ${joinWithAnd(choices, "or")}. Which fits best?`;
 }

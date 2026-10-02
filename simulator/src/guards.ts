@@ -78,3 +78,22 @@ export function groundedAnswers(
         ),
     );
 }
+
+// Questions only the resident's own data can answer: "my reports", "do I
+// have any reports", "the one I filed", "did they fix it", "any news".
+const OWN_REPORTS =
+    /\b(?:my|our)\s+(?:reports?|requests?|complaints?|tickets?)\b|\b(?:do|did|have)\s+i\s+(?:have\s+)?(?:any\s+)?(?:open\s+)?(?:reports?|requests?)\b|\bi\s+(?:reported|filed)\b|\bany\s+(?:news|updates?)\b|\bdid\s+they\s+fix\b/i;
+
+/** True when the resident asks about their own reports, which no model may answer from memory. */
+export function asksAboutOwnReports(utterance: string): boolean {
+    return OWN_REPORTS.test(utterance);
+}
+
+// Counts and statuses of reports. Said without a tool in the turn, they were made up.
+const REPORT_FACTS =
+    /\b(?:one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+(?:open\s+)?(?:reports?|requests?)\b|\bstill open\b|\bwas closed\b|\bin progress\b|\bhas been fixed\b/i;
+
+/** True when a sentence states facts about reports: how many, open, closed, in progress. */
+export function soundsLikeReportFacts(text: string): boolean {
+    return REPORT_FACTS.test(text);
+}

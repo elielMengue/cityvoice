@@ -1,4 +1,11 @@
-import { CONFIRMED_TOOLS, groundedAnswers, isClearYes, NOT_CONFIRMED_MESSAGE } from "./guards";
+import {
+    asksAboutOwnReports,
+    CONFIRMED_TOOLS,
+    groundedAnswers,
+    isClearYes,
+    NOT_CONFIRMED_MESSAGE,
+    soundsLikeReportFacts,
+} from "./guards";
 import { dataForModel, recentHistory } from "./modelView";
 import { cleanSpeech, extractTextToolCalls } from "./textToolCalls";
 
@@ -125,6 +132,8 @@ Having a conversation:
 - Not everything is a report. When the resident greets you, thanks you, asks what you can do or how
   reporting works, or says something that is not a problem in the street, answer yourself in one or two
   short, warm sentences, then offer to help if it fits. Do not call a tool for that.
+- Anything about the resident's reports, or about what was reported somewhere, comes from a tool:
+  get_my_reports or show_report_map. Never answer it from memory, and never make up a report.
 - What you can do is in the server instructions: reporting problems in the street, following up on
   reports, and showing what was reported nearby. Do not promise anything else.
 - Keep the thread. "Yes", "that one", "the second one" and "never mind" refer to what you just said.
@@ -190,6 +199,13 @@ export async function runTurn(
             // The model judged it an emergency on its own. The server decides
             // what to say, and makes sure nothing gets filed.
             calls = [{ id: `safety_${step}`, name: "start_report", args: { problem_description: utterance } }];
+            contents[contents.length - 1] = { role: "model", parts: calls.map((call) => ({ functionCall: call })) };
+        }
+        const madeUp = asksAboutOwnReports(utterance) || soundsLikeReportFacts(rawText(content));
+        if (calls.length === 0 && step === 0 && madeUp && toolNames.has("get_my_reports")) {
+            // The model answered about reports without looking anything up:
+            // whatever it said was made up, so the server answers instead.
+            calls = [{ id: `grounding_${step}`, name: "get_my_reports", args: {} }];
             contents[contents.length - 1] = { role: "model", parts: calls.map((call) => ({ functionCall: call })) };
         }
         if (calls.length === 0) {

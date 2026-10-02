@@ -1,6 +1,12 @@
 import { describe, expect, test } from "bun:test";
 
-import { groundedAnswers, isClearYes, NOT_CONFIRMED_MESSAGE } from "../src/guards";
+import {
+    asksAboutOwnReports,
+    groundedAnswers,
+    isClearYes,
+    NOT_CONFIRMED_MESSAGE,
+    soundsLikeReportFacts,
+} from "../src/guards";
 import type { Content, Model, ToolResult, ToolServer } from "../src/orchestrator";
 import { runTurn } from "../src/orchestrator";
 
@@ -13,6 +19,44 @@ describe("isClearYes", () => {
         "not a clear yes: %s",
         (utterance) => {
             expect(isClearYes(utterance)).toBe(false);
+        },
+    );
+});
+
+describe("asksAboutOwnReports", () => {
+    test.each([
+        "What's happening with my reports?",
+        "hi Alexa do I have reports? any news?",
+        "did they fix the pothole",
+        "Any update on my requests",
+        "hi Alexa do I have reports",
+        "what did I report last week",
+    ])("catches: %s", (utterance) => {
+        expect(asksAboutOwnReports(utterance)).toBe(true);
+    });
+
+    test.each(["There's a pothole at 14th and U", "Thank you", "What can you do?", "Report graffiti on my street"])(
+        "leaves alone: %s",
+        (utterance) => {
+            expect(asksAboutOwnReports(utterance)).toBe(false);
+        },
+    );
+});
+
+describe("soundsLikeReportFacts", () => {
+    test.each([
+        "You have three reports open.",
+        "The pothole on 14th Street is still open.",
+        "The graffiti was closed today.",
+        "It's in progress.",
+    ])("spots: %s", (text) => {
+        expect(soundsLikeReportFacts(text)).toBe(true);
+    });
+
+    test.each(["You're welcome!", "Let me know if there's a pothole you'd like to report.", "Hello! How can I help?"])(
+        "leaves alone: %s",
+        (text) => {
+            expect(soundsLikeReportFacts(text)).toBe(false);
         },
     );
 });

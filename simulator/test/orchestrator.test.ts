@@ -258,6 +258,42 @@ describe("runTurn with a rejected argument", () => {
     });
 });
 
+describe("runTurn with a made-up answer", () => {
+    test("asks the server when the model answers about the resident's reports from memory", async () => {
+        const model = scriptedModel([[{ text: "You filed three reports. The first is a pothole on 14th Street." }]]);
+        const tools = fakeTools({
+            get_my_reports: { isError: false, speech: "You don't have any reports right now.", data: {} },
+        });
+
+        const result = await runTurn({ model, tools }, [], "What's happening with my reports?");
+
+        expect(tools.called).toEqual(["get_my_reports"]);
+        expect(result.speech).toBe("You don't have any reports right now.");
+    });
+
+    test("catches made-up report facts even when the question was not recognized", async () => {
+        const model = scriptedModel([[{ text: "You have three reports open. The first is still open." }]]);
+        const tools = fakeTools({
+            get_my_reports: { isError: false, speech: "You have one report.", data: {} },
+        });
+
+        const result = await runTurn({ model, tools }, [], "hey, anything from the city lately?");
+
+        expect(tools.called).toEqual(["get_my_reports"]);
+        expect(result.speech).toBe("You have one report.");
+    });
+
+    test("lets the model answer small talk on its own", async () => {
+        const model = scriptedModel([[{ text: "You're welcome!" }]]);
+        const tools = fakeTools({ get_my_reports: { isError: false, speech: "unused", data: {} } });
+
+        const result = await runTurn({ model, tools }, [], "Thank you");
+
+        expect(tools.called).toEqual([]);
+        expect(result.speech).toBe("You're welcome!");
+    });
+});
+
 describe("runTurn with an emergency", () => {
     test("lets the server answer when the model only says to call 911", async () => {
         const model = scriptedModel([[{ text: "Call 911." }]]);

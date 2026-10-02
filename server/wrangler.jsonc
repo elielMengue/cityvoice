@@ -8,6 +8,8 @@
     // makes several D1 queries, so this is what keeps us under 500 ms.
     "placement": { "mode": "smart" },
     "observability": { "enabled": true },
+    // Refreshes the mirror of San Francisco's real 311 requests.
+    "triggers": { "crons": ["*/10 * * * *"] },
     "d1_databases": [
         {
             "binding": "DB",
@@ -35,6 +37,7 @@
         "production": {
             // Keep the plain name so the address stays cityvoice.<account>.workers.dev.
             "name": "cityvoice",
+            "triggers": { "crons": ["*/10 * * * *"] },
             "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "d28d8f73a8be480d9f1c75589a04fb38" }],
             "d1_databases": [
                 {

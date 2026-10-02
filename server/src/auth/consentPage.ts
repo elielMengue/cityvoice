@@ -15,6 +15,8 @@ export interface DemoAccount {
     readonly id: string;
     readonly name: string;
     readonly homeAddress: string;
+    /** The city's name, so two residents on streets with the same name are told apart. */
+    readonly cityName: string;
 }
 
 /** Everything that came from the client is chosen by whoever registered it, so all of it is escaped. */
@@ -51,7 +53,7 @@ export function renderConsentPage(details: ConsentDetails, handle: string, accou
         .map(
             (account, index) =>
                 `<label><input type="radio" name="resident" value="${escapeHtml(account.id)}"${index === 0 ? " checked" : ""}>
-                <strong>${escapeHtml(account.name)}</strong> <span class="muted">${escapeHtml(account.homeAddress)}</span></label>`,
+                <strong>${escapeHtml(account.name)}</strong> <span class="muted">${escapeHtml(account.homeAddress)}, ${escapeHtml(account.cityName)}</span></label>`,
         )
         .join("\n");
 

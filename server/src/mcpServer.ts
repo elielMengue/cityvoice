@@ -1,6 +1,7 @@
 import type { AuthInfo } from "@modelcontextprotocol/server";
 import { createMcpHandler, McpServer } from "@modelcontextprotocol/server";
 
+import { forCity } from "./cities/cities";
 import type { Logger } from "./logger";
 import { registerNeighborhoodUpdatePrompt } from "./prompts/neighborhoodUpdate";
 import { registerServicesResource } from "./resources/servicesResource";
@@ -39,6 +40,12 @@ function callerFrom(authInfo: AuthInfo | undefined): Caller {
     return { residentId: typeof residentId === "string" ? residentId : undefined };
 }
 
+/** The caller's city decides which places and which area the tools work with. */
+async function depsForCaller(deps: ToolDeps, caller: Caller): Promise<ToolDeps> {
+    const resident = caller.residentId === undefined ? undefined : await deps.residents.getResident(caller.residentId);
+    return forCity(deps, resident?.city ?? "washington-dc");
+}
+
 /**
  * Builds a fresh MCP server, with every tool, for one caller. The origin is
  * where the request arrived, so the map page loads its tiles from the same
@@ -71,8 +78,11 @@ function createMcpServer(deps: ToolDeps, caller: Caller, origin: string): McpSer
  */
 export function createMcpFetch(logger: Logger, deps: ToolDeps): McpFetch {
     const handler = createMcpHandler(
-        ({ authInfo, requestInfo }) =>
-            createMcpServer(deps, callerFrom(authInfo), new URL(requestInfo?.url ?? "http://localhost").origin),
+        async ({ authInfo, requestInfo }) => {
+            const caller = callerFrom(authInfo);
+            const origin = new URL(requestInfo?.url ?? "http://localhost").origin;
+            return createMcpServer(await depsForCaller(deps, caller), caller, origin);
+        },
         {
             legacy: "stateless",
             maxRequestBodySize: MAX_REQUEST_BODY_BYTES,

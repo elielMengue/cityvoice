@@ -50,7 +50,7 @@ describe("serveTile", () => {
         const { calls, fetchTile } = upstream();
 
         const response = await serveTile(new Request(`https://cityvoice.test${U_STREET_TILE}`), {
-            area: DC_BOUNDS,
+            areas: [DC_BOUNDS],
             fetch: fetchTile,
         });
 
@@ -71,8 +71,8 @@ describe("serveTile", () => {
         const cache = memoryCache();
         const request = () => new Request(`https://cityvoice.test${U_STREET_TILE}`);
 
-        await serveTile(request(), { area: DC_BOUNDS, fetch: fetchTile, cache });
-        const second = await serveTile(request(), { area: DC_BOUNDS, fetch: fetchTile, cache });
+        await serveTile(request(), { areas: [DC_BOUNDS], fetch: fetchTile, cache });
+        const second = await serveTile(request(), { areas: [DC_BOUNDS], fetch: fetchTile, cache });
 
         expect(second.status).toBe(200);
         expect(calls).toHaveLength(1);
@@ -83,7 +83,7 @@ describe("serveTile", () => {
         const cache = memoryCache();
 
         const response = await serveTile(new Request(`https://cityvoice.test${U_STREET_TILE}`), {
-            area: DC_BOUNDS,
+            areas: [DC_BOUNDS],
             fetch: fetchTile,
             cache,
         });

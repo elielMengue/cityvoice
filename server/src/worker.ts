@@ -10,7 +10,8 @@ import type { Config } from "./config";
 import { BUDGET_NAME, budgetExhaustedResponse, OAUTH_DAILY_UNITS, takeDailyUnit, usesDailyBudget } from "./dailyBudget";
 import { loadConfig } from "./config";
 import type { SqlDatabase } from "./db/sqlDatabase";
-import { DC_BOUNDS, DEMO_RESIDENTS } from "./demo/dcDemo";
+import { ALL_RESIDENTS, ALL_SERVICE_AREAS, DEMO_ACCOUNTS } from "./cities/cities";
+import { syncSanFrancisco } from "./cities/sanFrancisco";
 import { createSqlDemoDeps } from "./demo/demoDeps";
 import { createFetchHandler, HEALTH_PATH, MCP_PATH } from "./httpServer";
 import type { RateLimiter } from "./limits";
@@ -71,7 +72,7 @@ function edgeCache(): TileCache | undefined {
  */
 function buildDemoWorker(env: WorkerEnv, config: Config): WorkerFetch {
     const authenticate = createDemoAuthenticator(
-        DEMO_RESIDENTS.map((resident) => resident.id),
+        ALL_RESIDENTS.map((resident) => resident.id),
         config.demoResident,
     );
     const handler = createFetchHandler({
@@ -131,11 +132,11 @@ function buildOAuthWorker(config: Config): WorkerFetch {
             return Response.json({ status: "ok" });
         }
         if (pathname.startsWith(`${TILES_PATH}/`)) {
-            return serveTile(request, { area: DC_BOUNDS, cache: edgeCache() });
+            return serveTile(request, { areas: ALL_SERVICE_AREAS, cache: edgeCache() });
         }
         if (pathname === AUTHORIZE_PATH && env.OAUTH_PROVIDER !== undefined) {
             return handleAuthorize(
-                { oauth: env.OAUTH_PROVIDER, residents: new SqlResidentStore(env.DB), accounts: DEMO_RESIDENTS },
+                { oauth: env.OAUTH_PROVIDER, residents: new SqlResidentStore(env.DB), accounts: DEMO_ACCOUNTS },
                 request,
             );
         }
@@ -187,5 +188,17 @@ export default {
             };
         }
         return cached.fetch(request, env, ctx);
+    },
+
+    /** Every few minutes: refresh the mirror of San Francisco's real requests. */
+    async scheduled(_event: unknown, env: WorkerEnv): Promise<void> {
+        const logger = createLogger("info");
+        try {
+            const outcome = await syncSanFrancisco(env.DB, new Date());
+            logger.info("city mirrored", { city: "san-francisco", ...outcome });
+        } catch (error) {
+            // The mirror stays as it was; the next run tries again.
+            logger.warn("city mirror failed", { city: "san-francisco", error: String(error) });
+        }
     },
 };

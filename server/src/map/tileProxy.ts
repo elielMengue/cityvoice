@@ -32,7 +32,8 @@ export interface TileCache {
 }
 
 export interface TileProxyDeps {
-    readonly area: BoundingBox;
+    /** The areas of the cities served; a tile must be near one of them. */
+    readonly areas: readonly BoundingBox[];
     readonly fetch?: (input: string, init?: RequestInit) => Promise<Response>;
     readonly cache?: TileCache | undefined;
 }
@@ -65,7 +66,7 @@ export function tileInArea(tile: TileCoordinates, area: BoundingBox): boolean {
 
 export async function serveTile(request: Request, deps: TileProxyDeps): Promise<Response> {
     const tile = parseTilePath(new URL(request.url).pathname);
-    if (request.method !== "GET" || tile === undefined || !tileInArea(tile, deps.area)) {
+    if (request.method !== "GET" || tile === undefined || !deps.areas.some((area) => tileInArea(tile, area))) {
         return new Response("Not found", { status: 404 });
     }
     const cacheKey = new Request(new URL(request.url).toString(), { method: "GET" });

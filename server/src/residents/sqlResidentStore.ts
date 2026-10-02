@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { CITY_IDS } from "../cities/city";
 import type { SqlDatabase } from "../db/sqlDatabase";
 import type { ResolvedLocation } from "../geo/locationId";
 import type { Draft, MyReport, Resident, ResidentStore } from "./residentStore";
@@ -14,6 +15,7 @@ interface ResidentRow {
     home_address: string;
     home_lat: number;
     home_lng: number;
+    city: string;
 }
 
 interface DraftRow {
@@ -74,6 +76,8 @@ export class SqlResidentStore implements ResidentStore {
             : {
                   id: row.id,
                   name: row.name,
+                  // A city this build does not know falls back to the pilot rather than failing.
+                  city: CITY_IDS.find((id) => id === row.city) ?? "washington-dc",
                   homeAddress: row.home_address,
                   homePoint: { lat: row.home_lat, lng: row.home_lng },
               };

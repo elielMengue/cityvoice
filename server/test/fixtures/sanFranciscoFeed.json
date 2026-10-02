@@ -1,0 +1,94 @@
+[
+    {
+        "service_request_id": "101000000001",
+        "status": "open",
+        "service_name": "Graffiti",
+        "service_code": "DPW:Graffiti",
+        "description": "Tags on the bus shelter",
+        "requested_datetime": "2026-10-14T18:00:00Z",
+        "updated_datetime": "2026-10-14T18:05:00Z",
+        "address": "3001 16th St",
+        "lat": 37.76525,
+        "long": -122.41955
+    },
+    {
+        "service_request_id": "101000000002",
+        "status": "open",
+        "service_name": "Street or sidewalk cleaning",
+        "service_code": "PW:BSES:Street and Sidewalk Cleaning",
+        "description": "Dumped mattress on the sidewalk",
+        "requested_datetime": "2026-10-15T09:30:00Z",
+        "address": "2050 Mission St",
+        "lat": 37.7655,
+        "long": -122.4193
+    },
+    {
+        "service_request_id": "101000000003",
+        "status": "open",
+        "service_name": "Street or sidewalk cleaning",
+        "service_code": "PW:BSES:Street and Sidewalk Cleaning",
+        "description": "Please sweep the corner",
+        "requested_datetime": "2026-10-15T10:00:00Z",
+        "address": "2070 Mission St",
+        "lat": 37.7649,
+        "long": -122.41925
+    },
+    {
+        "service_request_id": "101000000004",
+        "status": "open",
+        "service_name": "Blocked driveway and illegal parking",
+        "service_code": "MTA:Parking Enforcement:General Enforcement",
+        "requested_datetime": "2026-10-15T11:00:00Z",
+        "address": "3010 16th St",
+        "lat": 37.7651,
+        "long": -122.4198
+    },
+    {
+        "service_request_id": "101000000005",
+        "status": "closed",
+        "status_notes": "Pothole filled",
+        "service_name": "Street defect",
+        "service_code": "PW:BSSR:Street Defects",
+        "requested_datetime": "2026-10-12T08:00:00Z",
+        "updated_datetime": "2026-10-15T07:00:00Z",
+        "address": "580 Valencia St",
+        "lat": 37.7617,
+        "long": -122.4214
+    },
+    {
+        "service_request_id": "101000000006",
+        "status": "open",
+        "service_name": "Graffiti",
+        "service_code": "DPW:Graffiti",
+        "requested_datetime": "2026-10-15T12:00:00Z",
+        "lat": 0,
+        "long": 0
+    },
+    {
+        "status": "open",
+        "service_name": "Graffiti",
+        "requested_datetime": "2026-10-15T12:00:00Z",
+        "lat": 37.765,
+        "long": -122.419
+    },
+    {
+        "service_request_id": "101000000008",
+        "status": "open",
+        "service_name": "Graffiti",
+        "service_code": "DPW:Graffiti",
+        "requested_datetime": "2026-10-15T12:00:00Z",
+        "address": "Oakland",
+        "lat": 37.8044,
+        "long": -122.2712
+    },
+    {
+        "service_request_id": "101000000009",
+        "status": "open",
+        "service_name": "Curb or sidewalk issues",
+        "service_code": "PW:BSM:Sidewalk",
+        "requested_datetime": "2026-09-01T12:00:00Z",
+        "address": "2800 24th St",
+        "lat": 37.7522,
+        "long": -122.4187
+    }
+]

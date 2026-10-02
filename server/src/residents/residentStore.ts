@@ -1,9 +1,12 @@
+import type { CityId } from "../cities/city";
 import type { GeoPoint } from "../geo/geo";
 import type { ResolvedLocation } from "../geo/locationId";
 
 export interface Resident {
     readonly id: string;
     readonly name: string;
+    /** The city the resident lives in, which decides the places and requests they hear about. */
+    readonly city: CityId;
     readonly homeAddress: string;
     readonly homePoint: GeoPoint;
 }

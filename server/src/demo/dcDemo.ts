@@ -1,4 +1,5 @@
 import { SERVICE_TYPES } from "../catalog/serviceCatalog";
+import { SF_RESIDENTS } from "../cities/sanFrancisco";
 import type { BoundingBox, GeoPoint } from "../geo/geo";
 import { distanceMeters } from "../geo/geo";
 import type { GazetteerEntry } from "../geo/gazetteerGeocoder";
@@ -50,18 +51,21 @@ export const DEMO_RESIDENTS: readonly Resident[] = [
     {
         id: "maria",
         name: "Maria",
+        city: "washington-dc",
         homeAddress: "1421 Columbia Road Northwest",
         homePoint: { lat: 38.9274, lng: -77.0327 },
     },
     {
         id: "daniel",
         name: "Daniel",
+        city: "washington-dc",
         homeAddress: "1520 T Street Northwest",
         homePoint: { lat: 38.9156, lng: -77.0345 },
     },
     {
         id: "aisha",
         name: "Aisha",
+        city: "washington-dc",
         homeAddress: "612 A Street Southeast",
         homePoint: { lat: 38.8883, lng: -76.9982 },
     },
@@ -258,7 +262,8 @@ export function buildDemoSeed(now: Date): DemoSeed {
         createdAt: iso(ago(6 - index * 2)),
     }));
 
-    return { requests: [...scripted, ...generated], residents: DEMO_RESIDENTS, myReports };
+    // San Francisco's residents are seeded too; its requests come from the city's own feed.
+    return { requests: [...scripted, ...generated], residents: [...DEMO_RESIDENTS, ...SF_RESIDENTS], myReports };
 }
 
 /** Hands out demo request numbers in order: 26-00484821, 26-00484822, and so on. */

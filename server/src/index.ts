@@ -1,6 +1,6 @@
 import { createDemoAuthenticator } from "./auth/authenticator";
 import { loadConfig } from "./config";
-import { DEMO_RESIDENTS } from "./demo/dcDemo";
+import { ALL_RESIDENTS } from "./cities/cities";
 import { createDemoDeps } from "./demo/demoDeps";
 import { createFetchHandler, MCP_PATH } from "./httpServer";
 import { createLogger, SILENT_LOGGER } from "./logger";
@@ -15,7 +15,7 @@ if (config.authMode !== "demo") {
 
 const tools = createDemoDeps();
 const authenticate = createDemoAuthenticator(
-    DEMO_RESIDENTS.map((resident) => resident.id),
+    ALL_RESIDENTS.map((resident) => resident.id),
     config.demoResident,
 );
 

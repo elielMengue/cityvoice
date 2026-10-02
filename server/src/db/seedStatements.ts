@@ -19,8 +19,15 @@ export function seedStatements(seed: DemoSeed, firstRequestNumber: number): RawS
 
     for (const resident of seed.residents) {
         statements.push({
-            sql: "INSERT INTO residents (id, name, home_address, home_lat, home_lng) VALUES (?, ?, ?, ?, ?)",
-            values: [resident.id, resident.name, resident.homeAddress, resident.homePoint.lat, resident.homePoint.lng],
+            sql: "INSERT INTO residents (id, name, city, home_address, home_lat, home_lng) VALUES (?, ?, ?, ?, ?, ?)",
+            values: [
+                resident.id,
+                resident.name,
+                resident.city,
+                resident.homeAddress,
+                resident.homePoint.lat,
+                resident.homePoint.lng,
+            ],
         });
     }
 

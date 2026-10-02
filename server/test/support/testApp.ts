@@ -5,7 +5,8 @@ import { join } from "node:path";
 import { createDemoAuthenticator, DEMO_RESIDENT_HEADER } from "../../src/auth/authenticator";
 import { BunSqliteDatabase } from "../../src/db/bunSqliteDatabase";
 import { seedStatements } from "../../src/db/seedStatements";
-import { buildDemoSeed, DEMO_RESIDENTS, FIRST_DEMO_REQUEST_NUMBER } from "../../src/demo/dcDemo";
+import { ALL_RESIDENTS } from "../../src/cities/cities";
+import { buildDemoSeed, FIRST_DEMO_REQUEST_NUMBER } from "../../src/demo/dcDemo";
 import { createDemoDeps, createSqlDemoDeps } from "../../src/demo/demoDeps";
 import { createFetchHandler, MCP_PATH } from "../../src/httpServer";
 import { SILENT_LOGGER } from "../../src/logger";
@@ -55,6 +56,8 @@ export interface TestApp {
     callTool(name: string, args: Record<string, unknown>, resident?: string): Promise<ToolOutcome>;
     /** Every sentence the server has said so far, for the speech rules test. */
     readonly spoken: string[];
+    /** The database behind the SQL backend, for tests that write to it directly. */
+    readonly db: BunSqliteDatabase | undefined;
 }
 
 /**
@@ -93,14 +96,12 @@ export function createTestApp(backend: TestBackend = "memory"): TestApp {
         draftCounter += 1;
         return `draft-${draftCounter}`;
     };
-    const deps =
-        backend === "memory"
-            ? createDemoDeps(clock, newId)
-            : createSqlDemoDeps(createSeededDatabase(TEST_NOW), clock, newId);
+    const db = backend === "sql" ? createSeededDatabase(TEST_NOW) : undefined;
+    const deps = db === undefined ? createDemoDeps(clock, newId) : createSqlDemoDeps(db, clock, newId);
     const handle = createFetchHandler({
         logger: SILENT_LOGGER,
         tools: deps,
-        authenticate: createDemoAuthenticator(DEMO_RESIDENTS.map((resident) => resident.id)),
+        authenticate: createDemoAuthenticator(ALL_RESIDENTS.map((resident) => resident.id)),
     });
     const spoken: string[] = [];
 
@@ -126,6 +127,7 @@ export function createTestApp(backend: TestBackend = "memory"): TestApp {
 
     return {
         deps,
+        db,
         handle,
         spoken,
         advance: (milliseconds) => {

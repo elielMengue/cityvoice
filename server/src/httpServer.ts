@@ -1,4 +1,5 @@
 import type { Authenticator } from "./auth/authenticator";
+import { ALL_SERVICE_AREAS } from "./cities/cities";
 import type { Logger } from "./logger";
 import type { TileCache } from "./map/tileProxy";
 import { serveTile, TILES_PATH } from "./map/tileProxy";
@@ -41,7 +42,7 @@ export function createFetchHandler({
                 response = Response.json({ status: "ok" });
             } else if (pathname.startsWith(`${TILES_PATH}/`)) {
                 response = await serveTile(request, {
-                    area: tools.serviceArea,
+                    areas: ALL_SERVICE_AREAS,
                     cache: tileCache,
                     ...(tileFetch === undefined ? {} : { fetch: tileFetch }),
                 });

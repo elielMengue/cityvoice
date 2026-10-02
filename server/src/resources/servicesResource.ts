@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import { ResourceNotFoundError, ResourceTemplate } from "@modelcontextprotocol/server";
 
 import { SERVICE_TYPES } from "../catalog/serviceCatalog";
+import { CITIES } from "../cities/cities";
 import { describeService } from "../tools/schemas";
 
 /**
@@ -12,8 +13,10 @@ import { describeService } from "../tools/schemas";
 
 const SERVICES_TEMPLATE = "cityvoice://services/{city}";
 
-/** Cities CityVoice serves, by the slug used in the URI. Washington DC is the pilot. */
-const CITIES: Readonly<Record<string, string>> = { "washington-dc": "Washington, DC" };
+/** Cities CityVoice serves, by the slug used in the URI, with their names. */
+const CITY_NAMES: Readonly<Record<string, string>> = Object.fromEntries(
+    Object.values(CITIES).map((city) => [city.id, city.name]),
+);
 
 function servicesUri(city: string): string {
     return `cityvoice://services/${city}`;
@@ -24,7 +27,7 @@ export function registerServicesResource(server: McpServer): void {
         "City services",
         new ResourceTemplate(SERVICES_TEMPLATE, {
             list: () => ({
-                resources: Object.entries(CITIES).map(([slug, name]) => ({
+                resources: Object.entries(CITY_NAMES).map(([slug, name]) => ({
                     uri: servicesUri(slug),
                     name: `${name} services`,
                     mimeType: "application/json",
@@ -39,7 +42,7 @@ export function registerServicesResource(server: McpServer): void {
         },
         (uri, variables) => {
             const city = String(variables["city"] ?? "");
-            const name = CITIES[city];
+            const name = CITY_NAMES[city];
             if (name === undefined) {
                 throw new ResourceNotFoundError(uri.href, `CityVoice does not serve ${city || "that city"} yet.`);
             }

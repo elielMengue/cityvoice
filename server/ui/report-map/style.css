@@ -30,6 +30,9 @@
 html,
 body {
     margin: 0;
+    /* The page is exactly as tall as the map, and the host sizes the frame to
+       it; a scrollbar would only show a rounding difference. */
+    overflow: hidden;
     background: var(--surface);
     color: var(--text);
     font:
@@ -156,13 +159,4 @@ body {
     background: color-mix(in srgb, var(--surface) 80%, transparent);
     color: var(--muted);
     font-size: 10px;
-}
-
-.empty {
-    display: grid;
-    place-items: center;
-    height: 100%;
-    margin: 0;
-    color: var(--muted);
-    font-size: 20px;
 }

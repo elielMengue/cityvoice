@@ -179,6 +179,10 @@ check(
     mapPage.includes("text/html;profile=mcp-app") && mapPage.includes(`${baseUrl}/tiles`),
     "the map page is served, with its tiles on this server",
 );
+const olderPage = await (
+    await mcpRequest(tokens.access_token, "resources/read", { uri: "ui://cityvoice/report-map.000000000000.html" })
+).text();
+check(olderPage.includes("text/html;profile=mcp-app"), "an older version of the map page still gets the current one");
 const tile = await fetch(`${baseUrl}/tiles/16/18744/25070.png`);
 check(
     tile.status === 200 && tile.headers.get("content-type") === "image/png",

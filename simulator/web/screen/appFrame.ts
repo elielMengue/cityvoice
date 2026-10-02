@@ -54,7 +54,10 @@ export async function showApp(container: HTMLElement, page: AppPage, entry: Trac
     frame.title = "What Alexa is showing";
     frame.className = "app-frame";
     const width = container.clientWidth;
-    frame.style.height = `${Math.round(width * CANVAS_RATIO)}px`;
+    // Shown once the app says how tall it is: an app with nothing to show
+    // reports zero, and then nothing appears at all.
+    frame.style.height = "0";
+    frame.dataset["empty"] = "true";
     container.append(frame);
 
     const view = frame.contentWindow;
@@ -80,6 +83,7 @@ export async function showApp(container: HTMLElement, page: AppPage, entry: Trac
     bridge.onsizechange = ({ height }) => {
         if (height !== undefined) {
             frame.style.height = `${Math.ceil(height)}px`;
+            frame.dataset["empty"] = String(height < 1);
         }
     };
     bridge.oninitialized = () => {

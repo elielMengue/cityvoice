@@ -12,7 +12,7 @@ describe("cityvoice://services/{city}", () => {
         }[];
         const resources = (await app.rpc("resources/list")).result?.["resources"] as { uri: string }[];
 
-        expect(templates.map((template) => template.uriTemplate)).toEqual(["cityvoice://services/{city}"]);
+        expect(templates.map((template) => template.uriTemplate)).toContain("cityvoice://services/{city}");
         expect(resources.map((resource) => resource.uri)).toContain("cityvoice://services/washington-dc");
     });
 

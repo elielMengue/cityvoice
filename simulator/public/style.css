@@ -267,6 +267,11 @@ body {
     box-shadow: 0 6px 24px rgb(20 40 80 / 8%);
 }
 
+/* Laid out at full width so the app can measure itself, but invisible until it has something to show. */
+.app-frame[data-empty="true"] {
+    opacity: 0;
+}
+
 /* ---------- The microphone ---------- */
 
 .voice {

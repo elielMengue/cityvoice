@@ -171,6 +171,19 @@ describe("the map as an MCP App", () => {
         expect(withMap.sort()).toEqual(["get_my_reports", "show_report_map"]);
     });
 
+    test("an older version of the page still gets the current one, so a deploy never hides the map", async () => {
+        const app = createTestApp();
+        const older = "ui://cityvoice/report-map.000000000000.html";
+
+        const { result, error } = await app.rpc("resources/read", { uri: older });
+        const [page] = (result?.["contents"] ?? []) as { uri: string; mimeType: string; text: string }[];
+
+        expect(error).toBeUndefined();
+        expect(page?.uri).toBe(older);
+        expect(page?.mimeType).toBe("text/html;profile=mcp-app");
+        expect(page?.text).toContain('content="http://localhost/tiles"');
+    });
+
     test("the page is a versioned HTML resource that loads tiles from this server only", async () => {
         const app = createTestApp();
 

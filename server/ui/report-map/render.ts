@@ -62,16 +62,21 @@ function legend(pins: readonly MapPin[]): HTMLElement {
 }
 
 export function renderMap(root: HTMLElement, map: ReportMap): void {
+    root.replaceChildren();
+    // Nothing to point at: the map steps aside, its height drops to zero,
+    // and the spoken answer stands alone.
+    root.hidden = map.pins.length === 0;
+    if (root.hidden) {
+        return;
+    }
     const width = root.clientWidth;
     const height = root.clientHeight;
+    if (width === 0 || height === 0) {
+        return;
+    }
     const points: LatLng[] = map.pins.map((pin) => ({ lat: pin.lat, lng: pin.lng }));
     if (map.place !== undefined) {
         points.push(map.place);
-    }
-    root.replaceChildren();
-    if (points.length === 0 || width === 0 || height === 0) {
-        root.append(element("p", "empty", "No reports to show here."));
-        return;
     }
 
     const view = fitView(points, width, height, PADDING);

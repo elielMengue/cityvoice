@@ -1,5 +1,6 @@
 import { registerAppResource, RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
 import type { McpServer } from "@modelcontextprotocol/server";
+import { ResourceTemplate } from "@modelcontextprotocol/server";
 
 import { TILES_PATH } from "../map/tileProxy";
 import { REPORT_MAP_HTML, REPORT_MAP_URI } from "./generated/reportMap";
@@ -8,6 +9,14 @@ export { REPORT_MAP_URI };
 
 /** Where the page reads its tile address; see ui/report-map/index.html. */
 const TILES_PLACEHOLDER = "__CITYVOICE_TILES__";
+
+/**
+ * Any version of the page. Hosts keep a tool's resource URI for a while (the
+ * simulator for minutes, Alexa+ until the add-on is deployed again), and the
+ * URI changes with every change to the page. An older URI still gets the
+ * current page instead of an error, so a deploy never takes the map away.
+ */
+const ANY_VERSION = "ui://cityvoice/report-map.{version}.html";
 
 /** Tells a tool's result to show the report map, for _meta on the tool. */
 export const SHOWS_REPORT_MAP = { ui: { resourceUri: REPORT_MAP_URI } };
@@ -30,6 +39,14 @@ export function registerReportMapResource(server: McpServer, origin: string): vo
         },
         async () => ({
             contents: [{ uri: REPORT_MAP_URI, mimeType: RESOURCE_MIME_TYPE, text: html, _meta: meta }],
+        }),
+    );
+    server.registerResource(
+        "Report map, earlier versions",
+        new ResourceTemplate(ANY_VERSION, { list: undefined }),
+        { mimeType: RESOURCE_MIME_TYPE, _meta: meta },
+        async (uri) => ({
+            contents: [{ uri: uri.href, mimeType: RESOURCE_MIME_TYPE, text: html, _meta: meta }],
         }),
     );
 }

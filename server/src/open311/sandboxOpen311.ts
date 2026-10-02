@@ -45,11 +45,13 @@ export class SandboxOpen311 implements Open311Client {
         }
     }
 
+    /** Holds no mirrored requests, so every request here was filed here and filedHere changes nothing. */
     async findRequests(query: ServiceRequestQuery): Promise<readonly ServiceRequest[]> {
         return [...this.requests.values()].filter(
             (request) =>
                 (query.service_code === undefined || request.service_code === query.service_code) &&
-                (query.status === undefined || request.status === query.status),
+                (query.status === undefined || request.status === query.status) &&
+                (query.ids === undefined || query.ids.includes(request.service_request_id)),
         );
     }
 

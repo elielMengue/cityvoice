@@ -19,6 +19,7 @@ import { checkLimits } from "./limits";
 import { createLogger } from "./logger";
 import type { TileCache } from "./map/tileProxy";
 import { serveTile, TILES_PATH } from "./map/tileProxy";
+import { OPEN311_PATH } from "./open311/feed";
 import { SqlResidentStore } from "./residents/sqlResidentStore";
 
 // Only the default export may be a value here: Workers treats every named
@@ -133,6 +134,10 @@ function buildOAuthWorker(config: Config): WorkerFetch {
         }
         if (pathname.startsWith(`${TILES_PATH}/`)) {
             return serveTile(request, { areas: ALL_SERVICE_AREAS, cache: edgeCache() });
+        }
+        // Public and read-only, like a city's own feed: no token needed.
+        if (pathname.startsWith(`${OPEN311_PATH}/`)) {
+            return handlerFor(env)(request);
         }
         if (pathname === AUTHORIZE_PATH && env.OAUTH_PROVIDER !== undefined) {
             return handleAuthorize(

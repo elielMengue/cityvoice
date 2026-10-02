@@ -267,7 +267,11 @@ async function route(request: Request, env: Env): Promise<Response> {
         return redirect("/", [clearCookie(SESSION_COOKIE)]);
     }
     if (url.pathname === "/api/session" && request.method === "GET") {
-        return Response.json({ linked: parseCookie(request, SESSION_COOKIE, tokensSchema) !== undefined });
+        return Response.json({
+            linked: parseCookie(request, SESSION_COOKIE, tokensSchema) !== undefined,
+            // Where CityVoice publishes its reports in the Open311 format, for the behind-the-scenes panel.
+            open311Url: `${env.CITYVOICE_URL.replace(/\/+$/, "")}/open311/v2`,
+        });
     }
     if (url.pathname === "/api/turn" && request.method === "POST") {
         return handleTurn(request, env);

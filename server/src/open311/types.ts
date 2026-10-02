@@ -45,6 +45,10 @@ export interface CreatedServiceRequest {
 export interface ServiceRequestQuery {
     readonly service_code?: string;
     readonly status?: ServiceRequestStatus;
+    /** Only requests filed or seeded in the CityVoice sandbox, leaving out those mirrored from a city. */
+    readonly filedHere?: boolean;
+    /** Only these requests. */
+    readonly ids?: readonly string[];
 }
 
 /**

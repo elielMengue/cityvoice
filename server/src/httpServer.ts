@@ -2,6 +2,7 @@ import type { Authenticator } from "./auth/authenticator";
 import { ALL_SERVICE_AREAS } from "./cities/cities";
 import type { Logger } from "./logger";
 import type { TileCache } from "./map/tileProxy";
+import { OPEN311_PATH, serveOpen311Feed } from "./open311/feed";
 import { serveTile, TILES_PATH } from "./map/tileProxy";
 import { createMcpFetch } from "./mcpServer";
 import type { ToolDeps } from "./tools/toolContext";
@@ -40,6 +41,8 @@ export function createFetchHandler({
         try {
             if (pathname === HEALTH_PATH && request.method === "GET") {
                 response = Response.json({ status: "ok" });
+            } else if (pathname.startsWith(`${OPEN311_PATH}/`)) {
+                response = (await serveOpen311Feed(request, tools)) ?? new Response("Not found", { status: 404 });
             } else if (pathname.startsWith(`${TILES_PATH}/`)) {
                 response = await serveTile(request, {
                     areas: ALL_SERVICE_AREAS,

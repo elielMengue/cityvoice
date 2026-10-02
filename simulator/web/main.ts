@@ -1,7 +1,7 @@
 import { refreshAccount } from "./account";
 import { forgetConversation, sendTurn } from "./conversation";
 import { element } from "./dom";
-import { clearTrace, wireScenes } from "./scenes";
+import { clearTrace, setOpen311Url, wireScenes } from "./scenes";
 import { clearScreen } from "./screen/screen";
 import { clearStage, show } from "./stage";
 import { openTyping, wireTyping } from "./typing";
@@ -24,7 +24,7 @@ element<HTMLButtonElement>("reset").addEventListener("click", () => {
     clearStage();
 });
 
-void refreshAccount();
+void refreshAccount().then((session) => setOpen311Url(session?.open311Url));
 
 // Back from a sign-in that did not work: say so once, then tidy the address.
 if (new URLSearchParams(location.search).get("link") === "failed") {

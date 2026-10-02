@@ -74,6 +74,16 @@ export class SqlSandboxOpen311 implements Open311Client {
             conditions.push("status = ?");
             values.push(query.status);
         }
+        if (query.filedHere === true) {
+            conditions.push("source = 'sandbox'");
+        }
+        if (query.ids !== undefined) {
+            if (query.ids.length === 0) {
+                return [];
+            }
+            conditions.push(`service_request_id IN (${placeholders(query.ids.length)})`);
+            values.push(...query.ids);
+        }
         const where = conditions.length === 0 ? "" : `WHERE ${conditions.join(" AND ")}`;
         const { results } = await this.db
             .prepare(`SELECT * FROM service_requests ${where} ORDER BY service_request_id`)

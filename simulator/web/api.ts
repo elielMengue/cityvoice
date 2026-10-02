@@ -44,6 +44,12 @@ export async function getApp(uri: string): Promise<AppPage> {
     return (await response.json()) as AppPage;
 }
 
-export async function getSession(): Promise<{ readonly linked: boolean }> {
-    return (await (await fetch("/api/session")).json()) as { linked: boolean };
+export interface Session {
+    readonly linked: boolean;
+    /** CityVoice's read-only Open311 feed, where every report filed by voice can be checked. */
+    readonly open311Url?: string;
+}
+
+export async function getSession(): Promise<Session> {
+    return (await (await fetch("/api/session")).json()) as Session;
 }

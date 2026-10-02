@@ -64,6 +64,11 @@ const resource = (await (await fetch(`${baseUrl}/.well-known/oauth-protected-res
     authorization_servers: string[];
 };
 check(resource.resource === `${baseUrl}/mcp`, `protected resource metadata names ${baseUrl}/mcp`);
+// Alexa+ reads the same document at the root.
+const rootResource = (await (await fetch(`${baseUrl}/.well-known/oauth-protected-resource`)).json()) as {
+    resource: string;
+};
+check(rootResource.resource === `${baseUrl}/mcp`, "the same metadata is served at the root, where Alexa+ reads it");
 const server = (await (await fetch(`${baseUrl}/.well-known/oauth-authorization-server`)).json()) as {
     authorization_endpoint: string;
     token_endpoint: string;

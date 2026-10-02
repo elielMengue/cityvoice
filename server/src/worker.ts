@@ -48,6 +48,7 @@ type WorkerFetch = (request: Request, env: WorkerEnv, ctx: unknown) => Promise<R
 const AUTHORIZE_PATH = "/authorize";
 const TOKEN_PATH = "/oauth/token";
 const REGISTER_PATH = "/oauth/register";
+const PROTECTED_RESOURCE_PATH = "/.well-known/oauth-protected-resource";
 
 const tokenPropsSchema = z.object({ residentId: z.string().min(1) });
 
@@ -127,6 +128,13 @@ function buildOAuthWorker(config: Config): WorkerFetch {
         return handlerFor(env)(request);
     };
 
+    const resourceMetadata = {
+        resource: `${publicUrl}${MCP_PATH}`,
+        authorization_servers: [publicUrl],
+        scopes_supported: [REPORTS_SCOPE],
+        bearer_methods_supported: ["header"],
+    };
+
     const serveOther = async (request: Request, env: WorkerEnv): Promise<Response> => {
         const { pathname } = new URL(request.url);
         if (pathname === HEALTH_PATH && request.method === "GET") {
@@ -160,11 +168,18 @@ function buildOAuthWorker(config: Config): WorkerFetch {
         scopesSupported: [REPORTS_SCOPE],
         requiredScopes: [REPORTS_SCOPE],
         resourceMetadata: {
-            resource: `${publicUrl}${MCP_PATH}`,
-            authorization_servers: [publicUrl],
+            resource: resourceMetadata.resource,
+            authorization_servers: resourceMetadata.authorization_servers,
         },
     });
     return async (request, env, ctx) => {
+        // The library serves this document under /mcp, where the MCP spec puts
+        // it, and answers 404 anywhere else in its namespace. Alexa+ reads it
+        // at the root, so that one path is answered before the library.
+        if (new URL(request.url).pathname === PROTECTED_RESOURCE_PATH && request.method === "GET") {
+            // Open to any origin, like the library's own copy, for browser-based MCP clients.
+            return Response.json(resourceMetadata, { headers: { "access-control-allow-origin": "*" } });
+        }
         const limited = await checkLimits(request, { auth: env.AUTH_LIMITER, mcp: env.MCP_LIMITER });
         if (limited !== undefined) {
             return limited;

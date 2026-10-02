@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>CityVoice carousel</title>
+        <!--
+            The store's carousel images, 600 x 900. Rendered by
+            server/scripts/renderAddonAssets.ts, one scene per ?scene=N.
+            The sentences are the ones CityVoice really says.
+        -->
+        <style>
+            * {
+                box-sizing: border-box;
+            }
+
+            html,
+            body {
+                width: 600px;
+                height: 900px;
+                margin: 0;
+                overflow: hidden;
+            }
+
+            body {
+                display: flex;
+                flex-direction: column;
+                gap: 22px;
+                padding: 48px 40px;
+                background:
+                    radial-gradient(60% 35% at 70% 0%, rgb(124 196 248 / 55%), transparent 70%),
+                    radial-gradient(45% 30% at 10% 5%, rgb(150 225 240 / 40%), transparent 70%), #f6f6f7;
+                color: #1f2933;
+                font:
+                    22px/1.4 "Segoe UI",
+                    -apple-system,
+                    "Noto Sans",
+                    sans-serif;
+            }
+
+            .brand {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                color: #0a73c9;
+                font-size: 26px;
+                font-weight: 600;
+            }
+
+            .brand img {
+                width: 44px;
+                height: 44px;
+            }
+
+            h1 {
+                margin: 8px 0 10px;
+                font-size: 40px;
+                font-weight: 600;
+                line-height: 1.15;
+            }
+
+            .said,
+            .answer {
+                max-width: 88%;
+                margin: 0;
+                padding: 16px 20px;
+                border-radius: 22px;
+            }
+
+            .said {
+                align-self: flex-end;
+                background: #dfe9f5;
+                border-bottom-right-radius: 6px;
+            }
+
+            .answer {
+                align-self: flex-start;
+                background: #ffffff;
+                border-bottom-left-radius: 6px;
+                box-shadow: 0 6px 24px rgb(20 40 80 / 10%);
+            }
+
+            .answer::before {
+                content: "Alexa";
+                display: block;
+                margin-bottom: 4px;
+                color: #0a73c9;
+                font-size: 16px;
+                font-weight: 600;
+            }
+
+            .status {
+                display: flex;
+                flex-direction: column;
+                gap: 14px;
+                padding: 20px;
+                border-radius: 22px;
+                background: #ffffff;
+                box-shadow: 0 6px 24px rgb(20 40 80 / 10%);
+            }
+
+            .row {
+                display: flex;
+                align-items: center;
+                gap: 14px;
+            }
+
+            .badge {
+                flex: none;
+                padding: 2px 12px;
+                border-radius: 999px;
+                font-size: 17px;
+                font-weight: 600;
+            }
+
+            .badge.closed {
+                background: #e5f4ea;
+                color: #1f6a44;
+            }
+
+            .badge.progress {
+                background: #fdf1e3;
+                color: #8a5a1f;
+            }
+
+            .badge.open {
+                background: #e6f0fb;
+                color: #1f4f8a;
+            }
+
+            [hidden] {
+                display: none !important;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="brand"><img src="icon.svg" alt="" />CityVoice</div>
+
+        <section data-scene="1">
+            <h1>Report a problem in your street, by voice</h1>
+        </section>
+        <p class="said" data-scene="1">"There's a huge pothole at 14th and U Street."</p>
+        <p class="answer" data-scene="1">
+            I found 14th Street and U Street Northwest. I don't see any open pothole reports there. Is it in the road or
+            in a crosswalk?
+        </p>
+        <p class="said" data-scene="1">"In the road."</p>
+        <p class="answer" data-scene="1">
+            So that's a pothole, in the road, at 14th Street and U Street Northwest. Should I send it to the city?
+        </p>
+
+        <section data-scene="2">
+            <h1>Already reported? Add your support</h1>
+        </section>
+        <p class="said" data-scene="2">"The streetlight in front of my house is out."</p>
+        <p class="answer" data-scene="2">
+            Two neighbors already reported a broken streetlight near your home, 4 days ago. Do you want to add your
+            support so the city sees it matters, or file a separate report?
+        </p>
+        <p class="said" data-scene="2">"Add my support."</p>
+        <p class="answer" data-scene="2">Done. That's three neighbors now. Ask me anytime for an update.</p>
+
+        <section data-scene="3">
+            <h1>Know where your reports stand</h1>
+        </section>
+        <p class="said" data-scene="3">"What's happening with my reports?"</p>
+        <p class="answer" data-scene="3">
+            The graffiti on 11th Street was closed today. The pothole on U Street is in progress: a crew has been
+            assigned. The missed trash pickup at your home is still waiting for the city.
+        </p>
+        <div class="status" data-scene="3">
+            <div class="row"><span class="badge closed">Closed</span>Graffiti, 11th Street</div>
+            <div class="row"><span class="badge progress">In progress</span>Pothole, U Street</div>
+            <div class="row"><span class="badge open">Waiting</span>Missed trash pickup, your home</div>
+        </div>
+
+        <script>
+            const scene = new URLSearchParams(location.search).get("scene") ?? "1";
+            for (const element of document.querySelectorAll("[data-scene]")) {
+                element.hidden = element.dataset.scene !== scene;
+            }
+        </script>
+    </body>
+</html>

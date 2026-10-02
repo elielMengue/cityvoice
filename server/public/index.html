@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>CityVoice</title>
+        <meta name="description" content="Report a problem in your street to your city by talking to Alexa." />
+        <link rel="icon" href="/addon/icon-64x64.png" />
+        <link rel="stylesheet" href="/legal.css" />
+    </head>
+    <body>
+        <main>
+            <h1>CityVoice</h1>
+            <p>
+                Report a problem in your street to your city by talking to Alexa: a pothole, a broken streetlight, a
+                missed trash pickup. Alexa asks what the city needs to know, reads the report back, and sends it when
+                you say yes. If a neighbor already reported it, you can add your support instead.
+            </p>
+            <p>
+                CityVoice speaks Open311, the open standard many US cities use for 311 requests. This pilot runs on
+                demonstration data for Washington DC, and reads San Francisco's real requests to show the same code on a
+                real city. Reports go to a sandbox, never to a city.
+            </p>
+            <p>Try saying:</p>
+            <ul>
+                <li>"There's a huge pothole at 14th and U Street."</li>
+                <li>"The streetlight in front of my house is out."</li>
+                <li>"What's happening with my reports?"</li>
+            </ul>
+            <p>
+                <a href="https://cityvoice-simulator.demop.workers.dev">Try it in the Alexa+ simulator</a>
+            </p>
+            <h2>For cities</h2>
+            <p>
+                Every report filed through CityVoice is published in the Open311 GeoReport v2 format, the one 311
+                systems already read: <a href="/open311/v2/requests.json">the requests</a> and
+                <a href="/open311/v2/services.json">the services</a>. It is exactly what a city would receive, minus who
+                filed it.
+            </p>
+            <footer><a href="/privacy">Privacy policy</a> · <a href="/terms">Terms of use</a></footer>
+        </main>
+    </body>
+</html>

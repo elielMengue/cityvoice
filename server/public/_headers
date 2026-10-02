@@ -1,0 +1,11 @@
+# Security headers for the static pages and images. Cloudflare applies this
+# file to every asset it serves; the Worker's own responses are not affected.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Content-Security-Policy: default-src 'none'; style-src 'self'; img-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'
+
+# The store and Alexa load the add-on's images from other origins.
+/addon/*
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=86400

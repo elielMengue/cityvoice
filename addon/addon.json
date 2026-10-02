@@ -1,0 +1,68 @@
+{
+    "manifestVersion": "1.0",
+    "storeListing": {
+        "distributionCountries": ["US"],
+        "locales": {
+            "en-US": {
+                "default": "DEFAULT",
+                "name": { "value": "CityVoice" },
+                "shortDescription": "Report potholes, broken streetlights and other street problems to your city by voice, then hear how they are going.",
+                "fullDescription": "CityVoice lets you report a problem in your street by talking to Alexa, the way you would tell a neighbor. Say \"there's a huge pothole at 14th and U\" and Alexa finds the place, asks the one or two questions the city needs, reads the report back, and sends it only when you say yes. You hear a request number you can ask about later.\n\nIf a neighbor already reported the same problem nearby, Alexa offers to add your support instead of filing a duplicate, so the city sees how many people it affects.\n\nAsk \"what's happening with my reports?\" at any time to hear, in plain words, which ones are waiting, in progress or closed. On a screen, a map shows them, colored by status. Ask \"what's new around my home this week?\" to hear what was reported or fixed nearby.\n\nCityVoice is not an emergency service. If what you describe sounds dangerous, like a gas smell or a downed power line, Alexa tells you to call 911 and files nothing.\n\nCityVoice speaks Open311, the open standard many US cities use for 311 requests. This pilot runs on demonstration data for Washington DC, and reads San Francisco's real 311 requests to show the same code on a real city. Reports go to a sandbox, never to a city.",
+                "examplePhrases": [
+                    "There's a huge pothole at 14th and U Street",
+                    "The streetlight in front of my house is out",
+                    "What's happening with my reports?",
+                    "What's new around my home this week?"
+                ],
+                "privacyAndCompliance": {
+                    "privacyPolicyUrl": "https://cityvoice.demop.workers.dev/privacy",
+                    "termsOfUseUrl": "https://cityvoice.demop.workers.dev/terms"
+                },
+                "mediaAssets": {
+                    "icons": {
+                        "light": [
+                            { "size": "72x72", "uri": "https://cityvoice.demop.workers.dev/addon/icon-72x72.png" },
+                            { "size": "64x64", "uri": "https://cityvoice.demop.workers.dev/addon/icon-64x64.png" },
+                            { "size": "88x88", "uri": "https://cityvoice.demop.workers.dev/addon/icon-88x88.png" },
+                            { "size": "126x126", "uri": "https://cityvoice.demop.workers.dev/addon/icon-126x126.png" },
+                            { "size": "180x180", "uri": "https://cityvoice.demop.workers.dev/addon/icon-180x180.png" },
+                            { "size": "241x241", "uri": "https://cityvoice.demop.workers.dev/addon/icon-241x241.png" }
+                        ],
+                        "dark": []
+                    },
+                    "carouselImages": [
+                        {
+                            "uri": "https://cityvoice.demop.workers.dev/addon/carousel-1.png",
+                            "altText": "A resident reports a pothole at 14th and U Street; Alexa asks if it is in the road, then reads the report back before sending it.",
+                            "size": "600x900"
+                        },
+                        {
+                            "uri": "https://cityvoice.demop.workers.dev/addon/carousel-2.png",
+                            "altText": "Two neighbors already reported a broken streetlight; the resident adds their support, and Alexa says three neighbors now stand behind it.",
+                            "size": "600x900"
+                        },
+                        {
+                            "uri": "https://cityvoice.demop.workers.dev/addon/carousel-3.png",
+                            "altText": "A resident asks about their reports; Alexa says one is closed, one is in progress and one is waiting, and the screen lists them by status.",
+                            "size": "600x900"
+                        }
+                    ],
+                    "bannerImages": []
+                }
+            }
+        }
+    },
+    "integrations": [
+        {
+            "type": "MCP",
+            "config": {
+                "endpoints": {
+                    "default": {
+                        "type": "HTTPS",
+                        "uri": "https://cityvoice.demop.workers.dev/mcp"
+                    }
+                }
+            }
+        }
+    ]
+}

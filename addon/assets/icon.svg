@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+    <!-- A map pin that speaks: the place, and the voice that reports it. Same blues as the simulator. -->
+    <defs>
+        <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#1f9bf0" />
+            <stop offset="1" stop-color="#0a5fb5" />
+        </linearGradient>
+    </defs>
+    <rect width="240" height="240" rx="54" fill="url(#background)" />
+    <g transform="translate(18 34) scale(7.2)">
+        <path
+            fill="#ffffff"
+            d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"
+        />
+    </g>
+    <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-width="12">
+        <path d="M154.4 59.6A64 64 0 0 1 154.4 138.4" opacity="0.9" />
+        <path d="M178.1 41.1A94 94 0 0 1 178.1 156.9" opacity="0.6" />
+    </g>
+</svg>

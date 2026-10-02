@@ -299,3 +299,36 @@ Time lost is our own rough estimate.
   locally: Chrome stops a sandboxed frame from loading from localhost, so
   tiles only show once deployed.
 - **Time lost:** 40 minutes.
+
+### Packaging the add-on: three things the quickstart does not say
+
+- **Product:** Alexa+ MCP Toolkit, add-on manifest and account linking
+- **Happened:** the account linking page says Alexa+ reads
+  `/.well-known/oauth-protected-resource` at the root of the server, while the
+  MCP specification and our OAuth library put it under the resource path
+  (`/mcp`). The library also answers 404 for every other path in that
+  namespace, so a route of our own never ran until we put it in front of the
+  library. Dynamic client registration is not supported, so Alexa+ needs a
+  confidential client registered by hand, with one redirect URI per region,
+  and those URIs only appear once the CLI runs. Searching npm for the CLI by
+  its command name, `alexa-ai`, finds an unrelated package.
+- **Workaround:** the metadata is served at both places, a script registers
+  the Alexa+ client while registration is briefly open, and the add-on README
+  says to install the CLI from Amazon's instructions only.
+- **Time lost:** 30 minutes.
+
+### A real Open311 feed: standard fields, slow pages, no search by place
+
+- **Product:** San Francisco's Open311 GeoReport v2 feed
+- **Tried:** reading the real requests around a place during a voice turn,
+  with the `lat`, `long` and `radius` filters many Open311 servers offer.
+- **Happened:** the feed answered with the standard fields, which made it
+  easy to read, but it ignored the place filters and returned the newest
+  requests of the whole city. A page of 200 took about 4 seconds, far over
+  what a voice turn allows. Its requests also use codes that differ from the
+  ones its own service list publishes, so filtering by code returned nothing.
+  Washington DC, Boston and Chicago had no feed we could read at all.
+- **Workaround:** a scheduled job mirrors the newest requests every ten
+  minutes, and the tools read the mirror. Request types are matched by name
+  to ours where they mean the same thing, so duplicates are still found.
+- **Time lost:** 45 minutes.

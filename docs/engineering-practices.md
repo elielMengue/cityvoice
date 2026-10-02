@@ -105,4 +105,4 @@ over the network (DynamoDB, Amazon Location Service, a city's Open311 API):
 
 Docs are written for a reader with good but not native English. Short
 sentences, common words, active voice. Say what a thing does before you say
-how. Punctuate like a person: commas, colons and full stops, not long dashes.
+how.

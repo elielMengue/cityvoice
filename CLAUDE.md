@@ -19,9 +19,8 @@ Alexa+ track of the Amazon "Build, Ship, Shape" hackathon. Submission deadline:
 
 - Follow [docs/engineering-practices.md](docs/engineering-practices.md): AWS
   guidance first, Google TypeScript Style Guide for the gaps.
-- Docs, comments and commit messages in clear English, level B2 to C1. The
-  text must read as written by a person: no em dashes or double hyphens as
-  punctuation, no marketing tone.
+- Docs, comments and commit messages in clear English, level B2 to C1, with
+  no marketing tone.
 - No emojis anywhere.
 - One commit, one purpose. Conventional Commits subject, a body that explains
   why. No `Co-Authored-By` trailers.

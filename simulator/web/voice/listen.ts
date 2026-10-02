@@ -30,11 +30,26 @@ const RecognitionClass = speechWindow.SpeechRecognition ?? speechWindow.webkitSp
 const mic = element<HTMLButtonElement>("mic");
 let recognition: Recognition | undefined;
 
-/**
- * Starts listening, or stops if already listening. What was heard goes to
- * onHeard; a browser that cannot listen calls onCannotListen instead.
- */
-export function listen(onHeard: (text: string) => void, onCannotListen: () => void): void {
+export interface ListenHandlers {
+    /** The resident's words, once they stop talking. */
+    readonly onHeard: (text: string) => void;
+    /** The microphone closed without words: silence, or the microphone is blocked. */
+    readonly onNothingHeard: () => void;
+    /** This browser has no speech recognition at all. */
+    readonly onCannotListen: () => void;
+}
+
+export function isListening(): boolean {
+    return recognition !== undefined;
+}
+
+/** Closes the microphone. What was said so far still counts. */
+export function stopListening(): void {
+    recognition?.stop();
+}
+
+/** Opens the microphone for one utterance. */
+export function listen({ onHeard, onNothingHeard, onCannotListen }: ListenHandlers): void {
     if (RecognitionClass === undefined) {
         setHint(
             "This browser can't listen. Type instead with the button next to the microphone, or use Chrome or Edge.",
@@ -43,7 +58,6 @@ export function listen(onHeard: (text: string) => void, onCannotListen: () => vo
         return;
     }
     if (recognition !== undefined) {
-        recognition.stop();
         return;
     }
     stopSpeaking();
@@ -74,6 +88,8 @@ export function listen(onHeard: (text: string) => void, onCannotListen: () => vo
         setState("idle");
         if (finalText.trim().length > 0) {
             onHeard(finalText.trim());
+        } else {
+            onNothingHeard();
         }
     };
     mic.setAttribute("aria-pressed", "true");

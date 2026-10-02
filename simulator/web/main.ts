@@ -4,17 +4,15 @@ import { element } from "./dom";
 import { clearTrace, setOpen311Url, wireScenes } from "./scenes";
 import { clearScreen } from "./screen/screen";
 import { clearStage, show } from "./stage";
-import { openTyping, wireTyping } from "./typing";
-import { listen } from "./voice/listen";
+import { wireTyping } from "./typing";
+import { tapMicrophone } from "./voice/liveConversation";
 
 /**
  * The browser side of the simulator: microphone, voice, what Alexa shows,
  * and the "behind the scenes" drawer. This file only wires them together.
  */
 
-element<HTMLButtonElement>("mic").addEventListener("click", () => {
-    listen((heard) => void sendTurn(heard), openTyping);
-});
+element<HTMLButtonElement>("mic").addEventListener("click", tapMicrophone);
 wireTyping((typed) => void sendTurn(typed));
 wireScenes();
 element<HTMLButtonElement>("reset").addEventListener("click", () => {

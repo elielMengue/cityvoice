@@ -53,8 +53,8 @@ describe.each([...TEST_BACKENDS])("show_report_map (%s)", (backend) => {
         const outcome = await app.callTool("show_report_map", {}, "aisha");
 
         expect(outcome.speech).toBe(
-            "Around your home, there are four open reports within a few blocks: a missed trash pickup report, " +
-                "two broken streetlight reports, and a pothole report. One of them is yours.",
+            "Around your home, there are four open reports within a few blocks: two broken streetlight reports, " +
+                "a missed trash pickup report, and a pothole report. One of them is yours.",
         );
         const map = outcome.data["map"] as ReportMap;
         expect(map.place?.address).toBe("612 A Street Southeast");
@@ -120,6 +120,28 @@ describe.each([...TEST_BACKENDS])("show_report_map (%s)", (backend) => {
 
         expect(outcome.isError).toBe(true);
         expect(outcome.speech).toBe("I couldn't find that report anymore.");
+    });
+});
+
+describe("many kinds of reports", () => {
+    test("names the three most common and counts the rest, so the sentence stays short", async () => {
+        const app = createTestApp();
+        const services = ["POTHOLE", "STREETLIGHT", "GRAFFITI", "SIDEWALK", "ABANDONED_VEHICLE", "TREE_HAZARD"];
+        for (const [index, service_code] of [...services, "POTHOLE"].entries()) {
+            await app.deps.open311.createRequest({
+                service_code,
+                lat: 38.9171 + index * 0.0001,
+                long: -77.032,
+                address_string: "14th Street and U Street Northwest",
+                description: "test",
+                attributes: {},
+            });
+        }
+
+        const outcome = await app.callTool("show_report_map", { spoken_place: "14th and U" }, "daniel");
+
+        expect(outcome.speech).toMatch(/: \w+ pothole reports, .+, and \w+ other reports\.$/);
+        expect(outcome.speech.split(" ").length).toBeLessThanOrEqual(60);
     });
 });
 

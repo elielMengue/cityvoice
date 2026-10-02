@@ -584,13 +584,19 @@ describe.each([...TEST_BACKENDS])("with the %s store", (backend: TestBackend) =>
             await app.callTool("list_service_types", { problem_description: "gas leak" }, "maria");
             await app.callTool("list_service_types", { problem_description: "the tree is dead" }, "maria");
             await app.callTool("get_my_reports", {}, "aisha");
+            await app.callTool("show_report_map", {}, "aisha");
+            await app.callTool("show_report_map", { recent_days: 7 }, "aisha");
+            await app.callTool("show_report_map", { request_id: "26-00482233" }, "aisha");
+            await app.callTool("start_report", { problem_description: "I have an emergency" }, "aisha");
+            await app.callTool("start_report", { problem_description: "I just called the 911" }, "aisha");
 
-            expect(app.spoken.length).toBeGreaterThan(5);
+            expect(app.spoken.length).toBeGreaterThan(10);
             for (const speech of app.spoken) {
                 expect(wordCount(speech)).toBeLessThanOrEqual(MAX_SPEECH_WORDS);
                 expect(speech).not.toMatch(/[{}[\]_]/);
                 expect(speech).not.toMatch(/\d{5,}/);
-                expect(speech).not.toMatch(/as you can see|on the screen|below/i);
+                // Nothing visual: on a device without a screen, the sentence is the whole answer.
+                expect(speech).not.toMatch(/as you can see|on the screen|below|the map/i);
             }
         });
     });

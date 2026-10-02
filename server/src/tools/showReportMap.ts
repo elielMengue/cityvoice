@@ -60,17 +60,26 @@ async function reportsAround(
         .map(({ request }) => request);
 }
 
-/** "two pothole reports and a graffiti report". */
+/** Kinds named one by one before the rest are counted together, so the sentence stays short. */
+const MAX_KINDS_NAMED = 3;
+
+/** "two pothole reports and a graffiti report", or "..., and four other reports" when there are many kinds. */
 function describePins(pins: readonly MapPin[]): string {
     const counts = new Map<string, number>();
     for (const pin of pins) {
         counts.set(pin.service_name, (counts.get(pin.service_name) ?? 0) + 1);
     }
-    return joinWithAnd(
-        [...counts].map(([name, count]) =>
-            count === 1 ? withArticle(`${name} report`) : countOf(count, `${name} report`),
-        ),
+    // Most common first, so the kinds that are named are the ones that matter.
+    const kinds = [...counts].sort((a, b) => b[1] - a[1]);
+    const named = kinds.length > MAX_KINDS_NAMED + 1 ? kinds.slice(0, MAX_KINDS_NAMED) : kinds;
+    const parts = named.map(([name, count]) =>
+        count === 1 ? withArticle(`${name} report`) : countOf(count, `${name} report`),
     );
+    const others = kinds.slice(named.length).reduce((sum, [, count]) => sum + count, 0);
+    if (others > 0) {
+        parts.push(countOf(others, "other report"));
+    }
+    return joinWithAnd(parts);
 }
 
 // The sentences stand on their own: on a device without a screen, they are
